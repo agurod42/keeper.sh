@@ -26,11 +26,25 @@ const buildAuthHeaders = (accessToken: string): Record<string, string> => ({
   Authorization: `Zoho-oauthtoken ${accessToken}`,
 });
 
-const fetchPersonalCalendars = async (
+/**
+ * Fetches all calendars the user has access to — both personal (`category: "own"`)
+ * and group calendars (`category: "group"` — calendars shared with the user via
+ * Zoho Workplace groups/orgs).
+ *
+ * The Zoho `/api/v1/groups` endpoint returns *contact groups* from Zoho People
+ * (not calendars), so it's NOT useful for calendar discovery — see
+ * `Operations/Zoho Calendar API - notes.md` for the empirical findings.
+ *
+ * The `category=all` query brings back own + group + app + others in a single
+ * request with a consistent shape. Stubs (groups that were never given a real
+ * calendar — `uid: "group_<numeric>"`, `ctag: 0`) are returned as-is and the
+ * caller can choose to filter them.
+ */
+const fetchAllCalendars = async (
   accessToken: string,
   calendarApiBase: string,
 ): Promise<ZohoCalendarListEntry[]> => {
-  const url = `${calendarApiBase}/calendars`;
+  const url = `${calendarApiBase}/calendars?category=all`;
 
   const response = await fetch(url, {
     headers: buildAuthHeaders(accessToken),
@@ -58,40 +72,6 @@ const fetchPersonalCalendars = async (
   return (parsed.calendars ?? []) as ZohoCalendarListEntry[];
 };
 
-/**
- * Group calendars are deferred. Zoho's `/groups` endpoint requires the
- * `ZohoCalendar.group.READ` scope, and even when granted may 403 depending
- * on workspace plan. We try it best-effort and swallow failures silently —
- * the API spec says "the fallback paste-UID form" handles group calendars
- * out-of-band when this returns nothing.
- */
-const fetchGroupCalendars = async (
-  accessToken: string,
-  calendarApiBase: string,
-): Promise<ZohoCalendarListEntry[]> => {
-  try {
-    const url = `${calendarApiBase}/groups`;
-    const response = await fetch(url, {
-      headers: buildAuthHeaders(accessToken),
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const responseBody = await response.json();
-    let parsed;
-    try {
-      parsed = zohoCalendarListResponseSchema.assert(responseBody);
-    } catch {
-      return [];
-    }
-    return (parsed.calendars ?? []) as ZohoCalendarListEntry[];
-  } catch {
-    return [];
-  }
-};
-
 interface ListUserCalendarsOptions {
   providerMetadata: ZohoProviderMetadata;
 }
@@ -101,9 +81,7 @@ const listUserCalendars = async (
   options: ListUserCalendarsOptions,
 ): Promise<ZohoCalendarListEntry[]> => {
   const calendarApiBase = getCalendarApiBaseFromMetadata(options.providerMetadata);
-  const personal = await fetchPersonalCalendars(accessToken, calendarApiBase);
-  const groups = await fetchGroupCalendars(accessToken, calendarApiBase);
-  return [...personal, ...groups];
+  return fetchAllCalendars(accessToken, calendarApiBase);
 };
 
 export { listUserCalendars, CalendarListError };
