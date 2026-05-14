@@ -48,6 +48,11 @@ const resolveZohoRegion = (value: string | null | undefined): ZohoRegion => {
 const ZOHO_CALENDAR_SCOPE = "ZohoCalendar.calendar.ALL";
 const ZOHO_EVENT_SCOPE = "ZohoCalendar.event.ALL";
 const ZOHO_GROUP_SCOPE = "ZohoCalendar.group.READ";
+/**
+ * Required to call `/oauth/user/info` (otherwise it 401s even with a valid
+ * Zoho-oauthtoken). Stays in the consent screen as "View your basic profile".
+ */
+const ZOHO_PROFILE_SCOPE = "AaaServer.profile.READ";
 const REQUEST_TIMEOUT_MS = 15_000;
 
 const isRequestTimeoutError = (error: unknown): boolean =>
@@ -160,6 +165,7 @@ const createZohoOAuthService = (
       ZOHO_CALENDAR_SCOPE,
       ZOHO_EVENT_SCOPE,
       ZOHO_GROUP_SCOPE,
+      ZOHO_PROFILE_SCOPE,
     ];
 
     const url = new URL(buildAuthorizationUrl(region));
@@ -280,6 +286,7 @@ export {
   ZOHO_CALENDAR_SCOPE,
   ZOHO_EVENT_SCOPE,
   ZOHO_GROUP_SCOPE,
+  ZOHO_PROFILE_SCOPE,
   isZohoRegion,
   resolveZohoRegion,
   buildProviderMetadata,
