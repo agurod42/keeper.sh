@@ -19,6 +19,10 @@ const BODY_TRUNCATE = 1500;
 const STATIC_ENDPOINTS = [
   "/groups",
   "/calendars",
+  "/calendars?category=group",
+  "/calendars?category=app",
+  "/calendars?category=others",
+  "/calendars?category=all",
 ] as const;
 
 interface ProbeResult {
