@@ -173,7 +173,10 @@ const parseZohoEvents = (events: ZohoCalendarEvent[]): EventTimeSlot[] => {
       continue;
     }
 
-    const uid = event.caluid ?? event.uid;
+    // event.uid is the EVENT identifier (format: "<hash>@zoho.com").
+    // event.caluid is the CALENDAR's uid where the event lives — NEVER use it
+    // as event identity, all events in the same calendar share that value.
+    const uid = event.uid;
     if (!uid) {
       continue;
     }

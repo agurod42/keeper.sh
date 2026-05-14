@@ -135,7 +135,10 @@ const createZohoSyncProvider = (config: ZohoSyncProviderConfig) => {
           const parsed = zohoEventListResponseSchema.assert(body);
           const first = parsed.events?.[0];
           if (first) {
-            createdUid = first.caluid ?? first.uid;
+            // first.uid is the event identity ("<hash>@zoho.com"). first.caluid is
+            // the calendar UID — same for every event in this calendar — and must
+            // NEVER be used as event identity (see fetch-events for the same fix).
+            createdUid = first.uid;
             if (first.etag !== undefined) {
               createdEtag = String(first.etag);
             }
@@ -143,7 +146,7 @@ const createZohoSyncProvider = (config: ZohoSyncProviderConfig) => {
         } catch {
           try {
             const single = zohoEventSchema.assert(body);
-            createdUid = single.caluid ?? single.uid;
+            createdUid = single.uid;
             if (single.etag !== undefined) {
               createdEtag = String(single.etag);
             }
@@ -249,7 +252,8 @@ const createZohoSyncProvider = (config: ZohoSyncProviderConfig) => {
       const startTime = parseEventTime(event.dateandtime, "start");
       const endTime = parseEventTime(event.dateandtime, "end");
 
-      const uid = event.caluid ?? event.uid;
+      // Event identity is event.uid ("<hash>@zoho.com"). Never use caluid here.
+      const uid = event.uid;
       if (!uid || !startTime || !endTime) {
         continue;
       }
