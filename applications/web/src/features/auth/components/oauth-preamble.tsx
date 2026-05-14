@@ -1,4 +1,4 @@
-import type { ReactNode, SubmitEvent } from "react";
+import { useState, type ReactNode, type SubmitEvent } from "react";
 import ArrowLeftRight from "lucide-react/dist/esm/icons/arrow-left-right";
 import Check from "lucide-react/dist/esm/icons/check";
 import KeeperLogo from "@/assets/keeper.svg?react";
@@ -15,12 +15,13 @@ import { ExternalTextLink } from "@/components/ui/primitives/text-link";
 import { Divider } from "@/components/ui/primitives/divider";
 import { Button, ButtonText } from "@/components/ui/primitives/button";
 
-type Provider = "google" | "outlook" | "microsoft-365";
+type Provider = "google" | "outlook" | "microsoft-365" | "zoho";
 
 const PROVIDER_LABELS: Record<Provider, string> = {
   google: "Google",
   outlook: "Outlook",
   "microsoft-365": "Microsoft 365",
+  zoho: "Zoho Calendar",
 };
 
 const PERMISSIONS = [
@@ -39,7 +40,17 @@ const PROVIDER_API_MAP: Record<Provider, string> = {
   google: "google",
   outlook: "outlook",
   "microsoft-365": "outlook",
+  zoho: "zoho",
 };
+
+const ZOHO_REGIONS = [
+  { id: "us", label: "US (.com)", description: "calendar.zoho.com" },
+  { id: "eu", label: "EU (.eu)", description: "calendar.zoho.eu" },
+  { id: "in", label: "India (.in)", description: "calendar.zoho.in" },
+  { id: "au", label: "Australia (.com.au)", description: "calendar.zoho.com.au" },
+] as const;
+
+type ZohoRegionId = typeof ZOHO_REGIONS[number]["id"];
 
 export function PermissionsList({ items }: { items: readonly string[] }) {
   return (
@@ -54,13 +65,53 @@ export function PermissionsList({ items }: { items: readonly string[] }) {
   );
 }
 
+interface ZohoRegionPickerProps {
+  value: ZohoRegionId;
+  onChange: (value: ZohoRegionId) => void;
+}
+
+export function ZohoRegionPicker({ value, onChange }: ZohoRegionPickerProps) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend>
+        <Text size="sm" tone="default" align="left">
+          Select your Zoho region
+        </Text>
+      </legend>
+      <div className="flex flex-col gap-1">
+        {ZOHO_REGIONS.map((region) => (
+          <label
+            key={region.id}
+            className="flex items-center gap-2 rounded-md border border-interactive-border px-3 py-2 cursor-pointer hover:bg-background-subtle"
+          >
+            <input
+              type="radio"
+              name="zoho-region"
+              value={region.id}
+              checked={value === region.id}
+              onChange={() => onChange(region.id)}
+            />
+            <Text size="sm" tone="default" align="left">
+              {region.label}
+            </Text>
+            <Text size="sm" tone="muted" align="left">
+              {region.description}
+            </Text>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 interface PreambleLayoutProps {
   provider: Provider;
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void;
   children?: ReactNode;
+  extra?: ReactNode;
 }
 
-function PreambleLayout({ provider, onSubmit, children }: PreambleLayoutProps) {
+function PreambleLayout({ provider, onSubmit, children, extra }: PreambleLayoutProps) {
   return (
     <>
       <ProviderIconPair>
@@ -77,6 +128,7 @@ function PreambleLayout({ provider, onSubmit, children }: PreambleLayoutProps) {
         Start importing your events and sync them across all your calendars.
       </Text>
       <PermissionsList items={PERMISSIONS} />
+      {extra}
       <Divider />
       <form onSubmit={onSubmit} className="contents">
         <div className="flex items-stretch gap-2">
@@ -125,14 +177,26 @@ interface LinkOAuthPreambleProps {
 }
 
 export function LinkOAuthPreamble({ provider }: LinkOAuthPreambleProps) {
+  const [zohoRegion, setZohoRegion] = useState<ZohoRegionId>("us");
+
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const apiProvider = PROVIDER_API_MAP[provider];
-    window.location.href = `/api/sources/authorize?provider=${apiProvider}`;
+    const params = new URLSearchParams({ provider: apiProvider });
+    if (provider === "zoho") {
+      params.set("region", zohoRegion);
+    }
+    window.location.href = `/api/sources/authorize?${params.toString()}`;
   };
 
+  const extra = provider === "zoho"
+    ? (
+      <ZohoRegionPicker value={zohoRegion} onChange={setZohoRegion} />
+    )
+    : null;
+
   return (
-    <PreambleLayout provider={provider} onSubmit={handleSubmit} />
+    <PreambleLayout provider={provider} onSubmit={handleSubmit} extra={extra} />
   );
 }
 

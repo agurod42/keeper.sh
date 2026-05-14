@@ -7,6 +7,7 @@
     "./caldav": "./src/providers/caldav/index.ts",
     "./google": "./src/providers/google/index.ts",
     "./outlook": "./src/providers/outlook/index.ts",
+    "./zoho": "./src/providers/zoho/index.ts",
     "./fastmail": "./src/providers/fastmail/index.ts",
     "./icloud": "./src/providers/icloud/index.ts",
     "./ics": "./src/ics/index.ts",

@@ -104,6 +104,15 @@ abstract class OAuthSourceProvider<TConfig extends OAuthSourceConfig = OAuthSour
       .where(eq(calendarAccountsTable.id, calendarAccountId));
   }
 
+  /**
+   * Hook for subclasses to provide a provider-specific routing hint (region,
+   * tenant, etc.) when calling refreshAccessToken. Zoho uses this; default
+   * is undefined (no hint).
+   */
+  protected getRefreshRegion(): string | undefined {
+    return undefined;
+  }
+
   protected async ensureValidToken(): Promise<void> {
     const {
       database,
@@ -116,9 +125,14 @@ abstract class OAuthSourceProvider<TConfig extends OAuthSourceConfig = OAuthSour
       return;
     }
 
+    const region = this.getRefreshRegion();
+
     const tokenData = await runWithCredentialRefreshLock(oauthCredentialId, async () => {
       try {
-        return await this.oauthProvider.refreshAccessToken(refreshToken);
+        return await this.oauthProvider.refreshAccessToken(
+          refreshToken,
+          region ? { region } : undefined,
+        );
       } catch (error) {
         if (isOAuthReauthRequiredError(error)) {
           await this.markNeedsReauthentication();

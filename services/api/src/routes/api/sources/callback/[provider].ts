@@ -4,6 +4,7 @@ import { widelog } from "@/utils/logging";
 import { buildRedirectUrl, OAuthError } from "@/utils/oauth";
 import { oauthCallbackQuerySchema, providerParamSchema } from "@/utils/request-query";
 import {
+  buildCredentialMetadata,
   exchangeCodeForTokens,
   fetchUserInfo,
   validateState,
@@ -52,23 +53,33 @@ const GET = withWideEvent(async ({ request, params }) => {
       throw new OAuthError("Invalid or expired state", errorUrl);
     }
 
-    const { userId } = validatedState;
+    const { userId, region } = validatedState;
 
     const callbackUrl = new URL(`/api/sources/callback/${provider}`, baseUrl);
-    const tokens = await exchangeCodeForTokens(provider, code, callbackUrl.toString());
+    const exchangeOptions = region ? { region } : undefined;
+    const tokens = await exchangeCodeForTokens(
+      provider,
+      code,
+      callbackUrl.toString(),
+      exchangeOptions,
+    );
 
     if (!tokens.refresh_token) {
       throw new OAuthError("No refresh token", errorUrl);
     }
 
-    const userInfo = await fetchUserInfo(provider, tokens.access_token);
+    const userInfoOptions = region ? { region } : undefined;
+    const userInfo = await fetchUserInfo(provider, tokens.access_token, userInfoOptions);
     const expiresAt = new Date(Date.now() + tokens.expires_in * MS_PER_SECOND);
+
+    const providerMetadata = buildCredentialMetadata(provider, { region });
 
     const credentialId = await createOAuthSourceCredential(userId, {
       accessToken: tokens.access_token,
       email: userInfo.email,
       expiresAt,
       provider,
+      providerMetadata,
       refreshToken: tokens.refresh_token,
     });
 
@@ -77,6 +88,7 @@ const GET = withWideEvent(async ({ request, params }) => {
       email: userInfo.email,
       oauthCredentialId: credentialId,
       provider,
+      providerMetadata,
       userId,
     });
 

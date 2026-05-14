@@ -55,7 +55,7 @@ describe("handleOAuthCallbackWithDependencies", () => {
           enqueuePushSyncCalls.push(userId)
           return Promise.resolve();
         },
-        validateState: () => Promise.resolve({ destinationId: null, sourceCredentialId: null, userId: "user-1" }),
+        validateState: () => Promise.resolve({ destinationId: null, region: null, sourceCredentialId: null, userId: "user-1" }),
       },
     );
 
@@ -96,7 +96,7 @@ describe("handleOAuthCallbackWithDependencies", () => {
           enqueuePushSyncCalls.push(userId);
           return Promise.resolve();
         },
-        validateState: () => Promise.resolve({ destinationId: null, sourceCredentialId: null, userId: "user-1" }),
+        validateState: () => Promise.resolve({ destinationId: null, region: null, sourceCredentialId: null, userId: "user-1" }),
       },
     );
 
@@ -145,7 +145,7 @@ describe("handleOAuthCallbackWithDependencies", () => {
           enqueuePushSyncCalls.push(userId);
           return Promise.resolve();
         },
-        validateState: () => Promise.resolve({ destinationId: "destination-1", sourceCredentialId: null, userId: "user-1" }),
+        validateState: () => Promise.resolve({ destinationId: "destination-1", region: null, sourceCredentialId: null, userId: "user-1" }),
       },
     );
 
@@ -188,7 +188,7 @@ describe("handleOAuthCallbackWithDependencies", () => {
           hasRequiredScopes: () => true,
           persistCalendarDestination: () => Promise.resolve(),
           enqueuePushSync: () => Promise.resolve(),
-          validateState: () => Promise.resolve({ destinationId: "destination-1", sourceCredentialId: null, userId: "user-1" }),
+          validateState: () => Promise.resolve({ destinationId: "destination-1", region: null, sourceCredentialId: null, userId: "user-1" }),
         },
       ),
     ).rejects.toBeInstanceOf(OAuthError);

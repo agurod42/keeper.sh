@@ -55,6 +55,15 @@ function ConnectPage() {
               <NavigationMenuItemTrailing />
             </NavigationMenuLinkItem>
           </div>
+          <div data-visitors-event={ANALYTICS_EVENTS.calendar_connect_started} data-visitors-provider="zoho">
+            <NavigationMenuLinkItem to="/dashboard/connect/zoho" disabled={atLimit}>
+              <NavigationMenuItemIcon>
+                <img src="/integrations/icon-zoho.svg" alt="" width={15} height={15} />
+              </NavigationMenuItemIcon>
+              <NavigationMenuItemLabel>Connect Zoho Calendar</NavigationMenuItemLabel>
+              <NavigationMenuItemTrailing />
+            </NavigationMenuLinkItem>
+          </div>
           <div data-visitors-event={ANALYTICS_EVENTS.calendar_connect_started} data-visitors-provider="apple">
             <NavigationMenuLinkItem to="/dashboard/connect/apple" disabled={atLimit}>
               <NavigationMenuItemIcon>

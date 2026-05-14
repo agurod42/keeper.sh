@@ -7,6 +7,9 @@ import {
 import {
   createOutlookSourceProvider,
 } from "../../providers/outlook";
+import {
+  createZohoSourceProvider,
+} from "../../providers/zoho";
 import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
 
 interface SourceFactoryConfig {
@@ -20,6 +23,7 @@ type SourceFactory = (config: SourceFactoryConfig) => SourceProvider;
 const SOURCE_OAUTH_FACTORIES: Record<string, SourceFactory> = {
   google: createGoogleCalendarSourceProvider,
   outlook: createOutlookSourceProvider,
+  zoho: createZohoSourceProvider,
 };
 
 interface SourceProvidersConfig {

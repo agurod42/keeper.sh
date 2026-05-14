@@ -70,7 +70,15 @@ interface OAuthTokenResponse {
   access_token: string;
   expires_in: number;
   refresh_token?: string;
-  scope: string;
+  scope?: string;
+}
+
+interface OAuthExchangeOptionsLocal {
+  region?: string;
+}
+
+interface OAuthUserInfoOptionsLocal {
+  region?: string;
 }
 
 interface HandleOAuthCallbackDependencies {
@@ -79,8 +87,13 @@ interface HandleOAuthCallbackDependencies {
     provider: string,
     code: string,
     callbackUrl: string,
+    options?: OAuthExchangeOptionsLocal,
   ) => Promise<OAuthTokenResponse>;
-  fetchUserInfo: (provider: string, accessToken: string) => Promise<OAuthUserInfo>;
+  fetchUserInfo: (
+    provider: string,
+    accessToken: string,
+    options?: OAuthUserInfoOptionsLocal,
+  ) => Promise<OAuthUserInfo>;
   getDestinationAccountId: (userId: string, destinationId: string) => Promise<string | null>;
   hasRequiredScopes: (provider: string, scope: string) => boolean | Promise<boolean>;
   persistCalendarDestination: (payload: {
@@ -143,20 +156,27 @@ const handleOAuthCallbackWithDependencies = async (
     throw new OAuthError("Invalid or expired state", errorUrl);
   }
 
-  const { userId, destinationId } = validatedState;
+  const { userId, destinationId, region } = validatedState;
 
   const callbackUrl = new URL(`/api/destinations/callback/${params.provider}`, dependencies.baseUrl);
+  const exchangeOptions = region ? { region } : undefined;
   const tokens = await dependencies.exchangeCodeForTokens(
     params.provider,
     params.code,
     callbackUrl.toString(),
+    exchangeOptions,
   );
 
   if (!tokens.refresh_token) {
     throw new OAuthError("No refresh token", errorUrl);
   }
 
-  const userInfo = await dependencies.fetchUserInfo(params.provider, tokens.access_token);
+  const userInfoOptions = region ? { region } : undefined;
+  const userInfo = await dependencies.fetchUserInfo(
+    params.provider,
+    tokens.access_token,
+    userInfoOptions,
+  );
   const expiresAt = new Date(Date.now() + tokens.expires_in * MS_PER_SECOND);
 
   if (destinationId) {
@@ -171,7 +191,7 @@ const handleOAuthCallbackWithDependencies = async (
     }
   }
 
-  const needsReauthentication = !(await dependencies.hasRequiredScopes(params.provider, tokens.scope));
+  const needsReauthentication = !(await dependencies.hasRequiredScopes(params.provider, tokens.scope ?? ""));
   const destinationPayload: { destinationId?: string } = {};
   if (destinationId !== null) {
     destinationPayload.destinationId = destinationId;
