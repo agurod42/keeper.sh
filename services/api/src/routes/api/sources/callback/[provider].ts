@@ -29,6 +29,14 @@ const GET = withWideEvent(async ({ request, params }) => {
     source: "error",
   });
 
+  const buildDebugErrorUrl = (label: string, detail: string): URL =>
+    buildRedirectUrl("/dashboard/integrations", baseUrl, {
+      debugLabel: label,
+      debugMessage: detail.slice(0, 500),
+      error: "Failed to connect source",
+      source: "error",
+    });
+
   try {
     const url = new URL(request.url);
     const callbackQuery = Object.fromEntries(url.searchParams.entries());
@@ -95,13 +103,19 @@ const GET = withWideEvent(async ({ request, params }) => {
     const successUrl = buildRedirectUrl(`/dashboard/accounts/${accountId}/setup`, baseUrl);
     return Response.redirect(successUrl.toString());
   } catch (error) {
+    const detail = error instanceof Error
+      ? `${error.name}: ${error.message}`
+      : String(error);
+
     if (error instanceof OAuthError) {
       widelog.errorFields(error, { slug: "oauth-callback-failed" });
-      return Response.redirect(error.redirectUrl.toString());
+      const debugUrl = buildDebugErrorUrl("oauth-callback-failed", detail);
+      return Response.redirect(debugUrl.toString());
     }
 
     widelog.errorFields(error, { slug: "unclassified" });
-    return Response.redirect(errorUrl.toString());
+    const debugUrl = buildDebugErrorUrl("unclassified", detail);
+    return Response.redirect(debugUrl.toString());
   }
 });
 
