@@ -171,6 +171,82 @@ const microsoftApiErrorSchema = type({
 });
 type MicrosoftApiError = typeof microsoftApiErrorSchema.infer;
 
+const zohoTokenResponseSchema = type({
+  access_token: "string",
+  "api_domain?": "string",
+  expires_in: "number",
+  "refresh_token?": "string",
+  "scope?": "string",
+  token_type: "string",
+});
+type ZohoTokenResponse = typeof zohoTokenResponseSchema.infer;
+
+const zohoUserInfoSchema = type({
+  "Display_Name?": "string",
+  "Email?": "string",
+  "First_Name?": "string",
+  "Last_Name?": "string",
+  ZUID: "string | number",
+});
+type ZohoUserInfo = typeof zohoUserInfoSchema.infer;
+
+const zohoDateTimeSchema = type({
+  "end?": "string",
+  "start?": "string",
+  "timezone?": "string",
+});
+type ZohoDateTime = typeof zohoDateTimeSchema.infer;
+
+const zohoCalendarListEntrySchema = type({
+  "caltype?": "string",
+  "color?": "string",
+  "default?": "boolean",
+  "description?": "string",
+  "isdefault?": "boolean",
+  "name?": "string",
+  "owner?": "string",
+  "permissions?": "string",
+  uid: "string",
+});
+type ZohoCalendarListEntry = typeof zohoCalendarListEntrySchema.infer;
+
+const zohoCalendarListResponseSchema = type({
+  "calendars?": zohoCalendarListEntrySchema.array(),
+});
+type ZohoCalendarListResponse = typeof zohoCalendarListResponseSchema.infer;
+
+const zohoEventSchema = type({
+  "calid?": "string",
+  "caluid?": "string",
+  "createdtime_millis?": "string | number",
+  "dateandtime?": zohoDateTimeSchema,
+  "description?": "string",
+  "estatus?": "string",
+  "etag?": "string | number",
+  "etype?": "string",
+  "isallday?": "boolean",
+  "isprivate?": "boolean",
+  "lastmodifiedtime?": "string",
+  "location?": "string",
+  "rrule?": "string",
+  "title?": "string",
+  uid: "string",
+  "viewEventURL?": "string",
+});
+type ZohoEvent = typeof zohoEventSchema.infer;
+
+const zohoEventListResponseSchema = type({
+  "events?": zohoEventSchema.array(),
+});
+type ZohoEventListResponse = typeof zohoEventListResponseSchema.infer;
+
+const zohoApiErrorSchema = type({
+  "code?": "number | string",
+  "message?": "string",
+  "status?": "string",
+});
+type ZohoApiError = typeof zohoApiErrorSchema.infer;
+
 const authSocialProvidersSchema = type({
   google: "boolean",
   microsoft: "boolean",
@@ -371,6 +447,14 @@ export {
   outlookCalendarViewEventSchema,
   outlookCalendarViewListSchema,
   microsoftApiErrorSchema,
+  zohoTokenResponseSchema,
+  zohoUserInfoSchema,
+  zohoDateTimeSchema,
+  zohoCalendarListEntrySchema,
+  zohoCalendarListResponseSchema,
+  zohoEventSchema,
+  zohoEventListResponseSchema,
+  zohoApiErrorSchema,
   authSocialProvidersSchema,
   authCapabilitiesSchema,
   socketMessageSchema,
@@ -414,6 +498,14 @@ export type {
   OutlookCalendarViewEvent,
   OutlookCalendarViewList,
   MicrosoftApiError,
+  ZohoTokenResponse,
+  ZohoUserInfo,
+  ZohoDateTime,
+  ZohoCalendarListEntry,
+  ZohoCalendarListResponse,
+  ZohoEvent,
+  ZohoEventListResponse,
+  ZohoApiError,
   AuthSocialProviders,
   AuthCapabilities,
   SocketMessage,

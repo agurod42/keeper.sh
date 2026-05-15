@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -22,6 +23,14 @@ const oauthCredentialsTable = pgTable(
     id: uuid().notNull().primaryKey().defaultRandom(),
     needsReauthentication: boolean().notNull().default(false),
     provider: text().notNull(),
+    /**
+     * Optional per-credential routing/tenant metadata.
+     * Zoho uses this to store the user's datacenter region and the
+     * resolved calendar API base URL (e.g.
+     * `{ region: "eu", calendarApiBase: "https://calendar.zoho.eu/api/v1" }`).
+     * Other providers leave it as `{}`.
+     */
+    providerMetadata: jsonb().notNull().default({}),
     refreshToken: text().notNull(),
     updatedAt: timestamp()
       .notNull()

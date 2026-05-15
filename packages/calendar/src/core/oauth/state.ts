@@ -8,6 +8,7 @@ interface PendingState {
   userId: string;
   destinationId: string | null;
   sourceCredentialId: string | null;
+  region: string | null;
   expiresAt: number;
 }
 
@@ -15,11 +16,13 @@ interface ValidatedState {
   userId: string;
   destinationId: string | null;
   sourceCredentialId: string | null;
+  region: string | null;
 }
 
 interface GenerateStateOptions {
   destinationId?: string;
   sourceCredentialId?: string;
+  region?: string;
 }
 
 interface OAuthStateStore {
@@ -40,6 +43,7 @@ const generateState = async (
   const pendingState: PendingState = {
     destinationId: options?.destinationId ?? null,
     expiresAt: Date.now() + STATE_EXPIRY_MINUTES * MS_PER_MINUTE,
+    region: options?.region ?? null,
     sourceCredentialId: options?.sourceCredentialId ?? null,
     userId,
   };
@@ -65,6 +69,7 @@ const validateState = async (
 
   return {
     destinationId: entry.destinationId,
+    region: entry.region ?? null,
     sourceCredentialId: entry.sourceCredentialId,
     userId: entry.userId,
   };

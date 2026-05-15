@@ -9,7 +9,9 @@ import {
 import { and, eq, inArray } from "drizzle-orm";
 import type {
   AuthorizationUrlOptions,
+  OAuthExchangeOptions,
   OAuthTokens,
+  OAuthUserInfoOptions,
   NormalizedUserInfo as OAuthUserInfo,
   ValidatedState,
 } from "@keeper.sh/calendar";
@@ -43,10 +45,27 @@ const exchangeCodeForTokens = (
   provider: string,
   code: string,
   callbackUrl: string,
-): Promise<OAuthTokens> => getOAuthProviderOrThrow(provider).exchangeCodeForTokens(code, callbackUrl);
+  options?: OAuthExchangeOptions,
+): Promise<OAuthTokens> =>
+  getOAuthProviderOrThrow(provider).exchangeCodeForTokens(code, callbackUrl, options);
 
-const fetchUserInfo = (provider: string, accessToken: string): Promise<OAuthUserInfo> =>
-  getOAuthProviderOrThrow(provider).fetchUserInfo(accessToken);
+const fetchUserInfo = (
+  provider: string,
+  accessToken: string,
+  options?: OAuthUserInfoOptions,
+): Promise<OAuthUserInfo> =>
+  getOAuthProviderOrThrow(provider).fetchUserInfo(accessToken, options);
+
+const buildCredentialMetadata = (
+  provider: string,
+  options: { region?: string | null },
+): Record<string, unknown> | null => {
+  const oauthProvider = oauthProviders.getProvider(provider);
+  if (!oauthProvider?.buildCredentialMetadata) {
+    return null;
+  }
+  return oauthProvider.buildCredentialMetadata({ region: options.region ?? null });
+};
 
 const validateState = (state: string): Promise<ValidatedState | null> => oauthProviders.validateState(state);
 
@@ -468,6 +487,7 @@ export {
   getAuthorizationUrl,
   exchangeCodeForTokens,
   fetchUserInfo,
+  buildCredentialMetadata,
   validateState,
   saveCalendarDestination,
   listCalendarDestinations,

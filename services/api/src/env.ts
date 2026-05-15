@@ -25,6 +25,8 @@ const schema = {
   BLOCK_PRIVATE_RESOLUTION: "boolean?",
   TRUSTED_ORIGINS: "string?",
   WEBSOCKET_URL: "string.url?",
+  ZOHO_CLIENT_ID: "string?",
+  ZOHO_CLIENT_SECRET: "string?",
 } as const;
 
 export { schema };

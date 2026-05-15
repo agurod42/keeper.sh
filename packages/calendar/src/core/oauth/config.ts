@@ -8,11 +8,14 @@ interface OAuthEnv {
   GOOGLE_CLIENT_SECRET?: string;
   MICROSOFT_CLIENT_ID?: string;
   MICROSOFT_CLIENT_SECRET?: string;
+  ZOHO_CLIENT_ID?: string;
+  ZOHO_CLIENT_SECRET?: string;
 }
 
 interface OAuthConfigs {
   google: OAuthCredentials | null;
   microsoft: OAuthCredentials | null;
+  zoho: OAuthCredentials | null;
 }
 
 const getCredentials = (
@@ -33,8 +36,9 @@ const getCredentials = (
 const buildOAuthConfigs = (env: OAuthEnv): OAuthConfigs => {
   const google = getCredentials(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
   const microsoft = getCredentials(env.MICROSOFT_CLIENT_ID, env.MICROSOFT_CLIENT_SECRET);
+  const zoho = getCredentials(env.ZOHO_CLIENT_ID, env.ZOHO_CLIENT_SECRET);
 
-  return { google, microsoft };
+  return { google, microsoft, zoho };
 };
 
 export { buildOAuthConfigs };

@@ -45,15 +45,21 @@ const GET = withWideEvent(
       }
     }
 
+    const region = url.searchParams.get("region");
+
     const callbackUrl = new URL(`/api/sources/callback/${provider}`, baseUrl);
     const authorizationOptions: {
       callbackUrl: string;
       sourceCredentialId?: string;
+      region?: string;
     } = {
       callbackUrl: callbackUrl.toString(),
     };
     if (credentialId) {
       authorizationOptions.sourceCredentialId = credentialId;
+    }
+    if (region) {
+      authorizationOptions.region = region;
     }
     const authUrl = await getAuthorizationUrl(provider, userId, authorizationOptions);
 

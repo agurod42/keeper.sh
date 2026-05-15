@@ -4,6 +4,10 @@ import {
 } from "@keeper.sh/database/schema";
 import { createGoogleTokenRefresher } from "@keeper.sh/calendar";
 import { createMicrosoftTokenRefresher } from "@keeper.sh/calendar";
+import {
+  createZohoTokenRefresher,
+  getZohoRegionFromMetadata,
+} from "@keeper.sh/calendar";
 import { eq } from "drizzle-orm";
 import { database, env } from "@/context";
 
@@ -155,9 +159,101 @@ const refreshMicrosoftSourceAccessToken = async (
   };
 };
 
+const refreshZohoAccessToken = async (
+  accountId: string,
+  refreshToken: string,
+): Promise<RefreshResult> => {
+  if (!env.ZOHO_CLIENT_ID || !env.ZOHO_CLIENT_SECRET) {
+    throw new Error("Zoho OAuth not configured");
+  }
+
+  const [account] = await database
+    .select({
+      oauthCredentialId: calendarAccountsTable.oauthCredentialId,
+    })
+    .from(calendarAccountsTable)
+    .where(eq(calendarAccountsTable.id, accountId))
+    .limit(FIRST_RESULT_LIMIT);
+
+  if (!account?.oauthCredentialId) {
+    throw new Error("OAuth credential not found for account");
+  }
+
+  const [credential] = await database
+    .select({ providerMetadata: oauthCredentialsTable.providerMetadata })
+    .from(oauthCredentialsTable)
+    .where(eq(oauthCredentialsTable.id, account.oauthCredentialId))
+    .limit(FIRST_RESULT_LIMIT);
+
+  const region = getZohoRegionFromMetadata(credential?.providerMetadata ?? null);
+
+  const refreshZohoToken = createZohoTokenRefresher({
+    clientId: env.ZOHO_CLIENT_ID,
+    clientSecret: env.ZOHO_CLIENT_SECRET,
+  });
+
+  const tokenData = await refreshZohoToken(refreshToken, { region });
+  const newExpiresAt = new Date(Date.now() + tokenData.expires_in * MS_PER_SECOND);
+
+  await database
+    .update(oauthCredentialsTable)
+    .set({
+      accessToken: tokenData.access_token,
+      expiresAt: newExpiresAt,
+      refreshToken: tokenData.refresh_token ?? refreshToken,
+    })
+    .where(eq(oauthCredentialsTable.id, account.oauthCredentialId));
+
+  return {
+    accessToken: tokenData.access_token,
+    expiresAt: newExpiresAt,
+  };
+};
+
+const refreshZohoSourceAccessToken = async (
+  credentialId: string,
+  refreshToken: string,
+): Promise<RefreshResult> => {
+  if (!env.ZOHO_CLIENT_ID || !env.ZOHO_CLIENT_SECRET) {
+    throw new Error("Zoho OAuth not configured");
+  }
+
+  const [credential] = await database
+    .select({ providerMetadata: oauthCredentialsTable.providerMetadata })
+    .from(oauthCredentialsTable)
+    .where(eq(oauthCredentialsTable.id, credentialId))
+    .limit(FIRST_RESULT_LIMIT);
+
+  const region = getZohoRegionFromMetadata(credential?.providerMetadata ?? null);
+
+  const refreshZohoToken = createZohoTokenRefresher({
+    clientId: env.ZOHO_CLIENT_ID,
+    clientSecret: env.ZOHO_CLIENT_SECRET,
+  });
+
+  const tokenData = await refreshZohoToken(refreshToken, { region });
+  const newExpiresAt = new Date(Date.now() + tokenData.expires_in * MS_PER_SECOND);
+
+  await database
+    .update(oauthCredentialsTable)
+    .set({
+      accessToken: tokenData.access_token,
+      expiresAt: newExpiresAt,
+      refreshToken: tokenData.refresh_token ?? refreshToken,
+    })
+    .where(eq(oauthCredentialsTable.id, credentialId));
+
+  return {
+    accessToken: tokenData.access_token,
+    expiresAt: newExpiresAt,
+  };
+};
+
 export {
   refreshGoogleAccessToken,
   refreshMicrosoftAccessToken,
+  refreshZohoAccessToken,
   refreshGoogleSourceAccessToken,
   refreshMicrosoftSourceAccessToken,
+  refreshZohoSourceAccessToken,
 };

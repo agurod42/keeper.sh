@@ -10,6 +10,7 @@ interface CreateOAuthSourceCredentialData {
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
+  providerMetadata?: Record<string, unknown> | null;
 }
 
 const createOAuthSourceCredential = async (
@@ -29,14 +30,25 @@ const createOAuthSourceCredential = async (
     .limit(FIRST_RESULT_LIMIT);
 
   if (existing) {
+    const updateSet: {
+      accessToken: string;
+      expiresAt: Date;
+      needsReauthentication: boolean;
+      refreshToken: string;
+      providerMetadata?: Record<string, unknown>;
+    } = {
+      accessToken: data.accessToken,
+      expiresAt: data.expiresAt,
+      needsReauthentication: false,
+      refreshToken: data.refreshToken,
+    };
+    if (data.providerMetadata) {
+      updateSet.providerMetadata = data.providerMetadata;
+    }
+
     await database
       .update(oauthCredentialsTable)
-      .set({
-        accessToken: data.accessToken,
-        expiresAt: data.expiresAt,
-        needsReauthentication: false,
-        refreshToken: data.refreshToken,
-      })
+      .set(updateSet)
       .where(eq(oauthCredentialsTable.id, existing.id));
 
     return existing.id;
@@ -49,6 +61,7 @@ const createOAuthSourceCredential = async (
       email: data.email,
       expiresAt: data.expiresAt,
       provider: data.provider,
+      providerMetadata: data.providerMetadata ?? {},
       refreshToken: data.refreshToken,
       userId,
     })

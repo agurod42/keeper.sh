@@ -8,6 +8,9 @@ export {
   type OAuthProvidersConfig,
   type OAuthProviders,
   type OAuthStateStore,
+  type OAuthExchangeOptions,
+  type OAuthRefreshOptions,
+  type OAuthUserInfoOptions,
 } from "./core/oauth/providers";
 export {
   buildOAuthConfigs,
@@ -123,6 +126,24 @@ export {
   type MicrosoftOAuthCredentials,
   type MicrosoftOAuthService,
 } from "./core/oauth/microsoft";
+export {
+  createZohoOAuthService,
+  createZohoTokenRefresher,
+  fetchUserInfo as fetchZohoUserInfo,
+  hasRequiredScopes as hasRequiredZohoScopes,
+  ZOHO_REGIONS,
+  ZOHO_REGION_IDS,
+  ZOHO_DEFAULT_REGION,
+  isZohoRegion,
+  resolveZohoRegion,
+  buildProviderMetadata as buildZohoProviderMetadata,
+  getCalendarApiBaseFromMetadata as getZohoCalendarApiBase,
+  getRegionFromMetadata as getZohoRegionFromMetadata,
+  type ZohoOAuthCredentials,
+  type ZohoOAuthService,
+  type ZohoProviderMetadata,
+  type ZohoRegion,
+} from "./core/oauth/zoho";
 export {
   generateState,
   validateState,

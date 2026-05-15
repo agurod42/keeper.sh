@@ -39,6 +39,14 @@ const outlookDefinition = {
   name: "Outlook",
 } as const satisfies ProviderDefinition;
 
+const zohoDefinition = {
+  authType: "oauth",
+  capabilities: { canRead: true, canWrite: true },
+  icon: "/integrations/icon-zoho.svg",
+  id: "zoho",
+  name: "Zoho Calendar",
+} as const satisfies ProviderDefinition;
+
 const caldavDefinition = {
   authType: "caldav",
   caldav: {
@@ -93,6 +101,7 @@ const icsDefinition = {
 const PROVIDER_DEFINITIONS = [
   googleCalendarDefinition,
   outlookDefinition,
+  zohoDefinition,
   fastmailDefinition,
   icloudDefinition,
   caldavDefinition,

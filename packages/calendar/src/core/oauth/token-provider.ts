@@ -4,8 +4,19 @@ interface OAuthRefreshResult {
   expires_in: number;
 }
 
-interface OAuthTokenProvider {
-  refreshAccessToken: (refreshToken: string) => Promise<OAuthRefreshResult>;
+interface OAuthRefreshOptions {
+  /**
+   * Provider-specific routing hint. Zoho uses this to pick the correct
+   * datacenter accounts URL (`us`/`eu`/`in`/`au`). Other providers ignore it.
+   */
+  region?: string;
 }
 
-export type { OAuthRefreshResult, OAuthTokenProvider };
+interface OAuthTokenProvider {
+  refreshAccessToken: (
+    refreshToken: string,
+    options?: OAuthRefreshOptions,
+  ) => Promise<OAuthRefreshResult>;
+}
+
+export type { OAuthRefreshResult, OAuthRefreshOptions, OAuthTokenProvider };

@@ -10,6 +10,14 @@ import {
   hasRequiredScopes as hasRequiredMicrosoftScopes,
 } from "./microsoft";
 import type { MicrosoftOAuthCredentials } from "./microsoft";
+import {
+  createZohoOAuthService,
+  fetchUserInfo as fetchZohoUserInfo,
+  hasRequiredScopes as hasRequiredZohoScopes,
+  resolveZohoRegion,
+  buildProviderMetadata as buildZohoProviderMetadata,
+} from "./zoho";
+import type { ZohoOAuthCredentials, ZohoProviderMetadata } from "./zoho";
 import { validateState } from "./state";
 
 interface AuthorizationUrlOptions {
@@ -17,6 +25,7 @@ interface AuthorizationUrlOptions {
   scopes?: string[];
   destinationId?: string;
   sourceCredentialId?: string;
+  region?: string;
 }
 
 interface NormalizedUserInfo {
@@ -28,20 +37,51 @@ interface OAuthTokens {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
-  scope: string;
+  scope?: string;
+}
+
+interface OAuthExchangeOptions {
+  region?: string;
+}
+
+interface OAuthRefreshOptions {
+  region?: string;
+}
+
+interface OAuthUserInfoOptions {
+  region?: string;
 }
 
 interface OAuthProvider {
   getAuthorizationUrl: (userId: string, options: AuthorizationUrlOptions) => Promise<string>;
-  exchangeCodeForTokens: (code: string, callbackUrl: string) => Promise<OAuthTokens>;
-  fetchUserInfo: (accessToken: string) => Promise<NormalizedUserInfo>;
-  refreshAccessToken: (refreshToken: string) => Promise<OAuthTokens>;
+  exchangeCodeForTokens: (
+    code: string,
+    callbackUrl: string,
+    options?: OAuthExchangeOptions,
+  ) => Promise<OAuthTokens>;
+  fetchUserInfo: (
+    accessToken: string,
+    options?: OAuthUserInfoOptions,
+  ) => Promise<NormalizedUserInfo>;
+  refreshAccessToken: (
+    refreshToken: string,
+    options?: OAuthRefreshOptions,
+  ) => Promise<OAuthTokens>;
   hasRequiredScopes: (grantedScopes: string) => boolean;
+  /**
+   * Optional hook to build per-credential metadata (e.g. Zoho region) to be
+   * persisted alongside the OAuth credential row. Returns null when the
+   * provider doesn't need extra metadata.
+   */
+  buildCredentialMetadata?: (options: {
+    region?: string | null;
+  }) => Record<string, unknown> | null;
 }
 
 interface OAuthProvidersConfig {
   google: GoogleOAuthCredentials | null;
   microsoft: MicrosoftOAuthCredentials | null;
+  zoho: ZohoOAuthCredentials | null;
 }
 
 interface OAuthProviders {
@@ -85,6 +125,26 @@ const createOAuthProviders = (
     };
   }
 
+  if (config.zoho) {
+    const zohoService = createZohoOAuthService(config.zoho, stateStore);
+    providers.zoho = {
+      buildCredentialMetadata: ({ region }): ZohoProviderMetadata => {
+        const resolved = resolveZohoRegion(region);
+        return buildZohoProviderMetadata(resolved);
+      },
+      exchangeCodeForTokens: zohoService.exchangeCodeForTokens,
+      fetchUserInfo: async (accessToken, options): Promise<NormalizedUserInfo> => {
+        const region = resolveZohoRegion(options?.region);
+        const info = await fetchZohoUserInfo(accessToken, region);
+        const id = typeof info.ZUID === "number" ? String(info.ZUID) : info.ZUID;
+        return { email: info.Email ?? "", id };
+      },
+      getAuthorizationUrl: zohoService.getAuthorizationUrl,
+      hasRequiredScopes: hasRequiredZohoScopes,
+      refreshAccessToken: zohoService.refreshAccessToken,
+    };
+  }
+
   const getProvider = (providerId: string): OAuthProvider | undefined => providers[providerId];
 
   const isOAuthProvider = (providerId: string): boolean => providerId in providers;
@@ -113,4 +173,7 @@ export type {
   OAuthProvidersConfig,
   OAuthProviders,
   OAuthStateStore,
+  OAuthExchangeOptions,
+  OAuthRefreshOptions,
+  OAuthUserInfoOptions,
 };

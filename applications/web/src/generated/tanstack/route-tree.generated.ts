@@ -43,6 +43,7 @@ import { Route as dashboardDashboardSettingsIndexRouteImport } from './../../rou
 import { Route as dashboardDashboardIntegrationsIndexRouteImport } from './../../routes/(dashboard)/dashboard/integrations/index'
 import { Route as dashboardDashboardEventsIndexRouteImport } from './../../routes/(dashboard)/dashboard/events/index'
 import { Route as dashboardDashboardConnectIndexRouteImport } from './../../routes/(dashboard)/dashboard/connect/index'
+import { Route as oauthDashboardConnectZohoRouteImport } from './../../routes/(oauth)/dashboard/connect/zoho'
 import { Route as oauthDashboardConnectOutlookRouteImport } from './../../routes/(oauth)/dashboard/connect/outlook'
 import { Route as oauthDashboardConnectMicrosoftRouteImport } from './../../routes/(oauth)/dashboard/connect/microsoft'
 import { Route as oauthDashboardConnectIcsFileRouteImport } from './../../routes/(oauth)/dashboard/connect/ics-file'
@@ -236,6 +237,12 @@ const dashboardDashboardConnectIndexRoute =
     path: '/',
     getParentRoute: () => dashboardDashboardConnectRouteRoute,
   } as any)
+const oauthDashboardConnectZohoRoute =
+  oauthDashboardConnectZohoRouteImport.update({
+    id: '/zoho',
+    path: '/zoho',
+    getParentRoute: () => oauthDashboardConnectRouteRoute,
+  } as any)
 const oauthDashboardConnectOutlookRoute =
   oauthDashboardConnectOutlookRouteImport.update({
     id: '/outlook',
@@ -357,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/connect/ics-file': typeof oauthDashboardConnectIcsFileRoute
   '/dashboard/connect/microsoft': typeof oauthDashboardConnectMicrosoftRoute
   '/dashboard/connect/outlook': typeof oauthDashboardConnectOutlookRoute
+  '/dashboard/connect/zoho': typeof oauthDashboardConnectZohoRoute
   '/dashboard/connect/': typeof dashboardDashboardConnectIndexRoute
   '/dashboard/events/': typeof dashboardDashboardEventsIndexRoute
   '/dashboard/integrations/': typeof dashboardDashboardIntegrationsIndexRoute
@@ -399,6 +407,7 @@ export interface FileRoutesByTo {
   '/dashboard/connect/ics-file': typeof oauthDashboardConnectIcsFileRoute
   '/dashboard/connect/microsoft': typeof oauthDashboardConnectMicrosoftRoute
   '/dashboard/connect/outlook': typeof oauthDashboardConnectOutlookRoute
+  '/dashboard/connect/zoho': typeof oauthDashboardConnectZohoRoute
   '/dashboard/events': typeof dashboardDashboardEventsIndexRoute
   '/dashboard/integrations': typeof dashboardDashboardIntegrationsIndexRoute
   '/dashboard/settings': typeof dashboardDashboardSettingsIndexRoute
@@ -449,6 +458,7 @@ export interface FileRoutesById {
   '/(oauth)/dashboard/connect/ics-file': typeof oauthDashboardConnectIcsFileRoute
   '/(oauth)/dashboard/connect/microsoft': typeof oauthDashboardConnectMicrosoftRoute
   '/(oauth)/dashboard/connect/outlook': typeof oauthDashboardConnectOutlookRoute
+  '/(oauth)/dashboard/connect/zoho': typeof oauthDashboardConnectZohoRoute
   '/(dashboard)/dashboard/connect/': typeof dashboardDashboardConnectIndexRoute
   '/(dashboard)/dashboard/events/': typeof dashboardDashboardEventsIndexRoute
   '/(dashboard)/dashboard/integrations/': typeof dashboardDashboardIntegrationsIndexRoute
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
     | '/dashboard/connect/ics-file'
     | '/dashboard/connect/microsoft'
     | '/dashboard/connect/outlook'
+    | '/dashboard/connect/zoho'
     | '/dashboard/connect/'
     | '/dashboard/events/'
     | '/dashboard/integrations/'
@@ -538,6 +549,7 @@ export interface FileRouteTypes {
     | '/dashboard/connect/ics-file'
     | '/dashboard/connect/microsoft'
     | '/dashboard/connect/outlook'
+    | '/dashboard/connect/zoho'
     | '/dashboard/events'
     | '/dashboard/integrations'
     | '/dashboard/settings'
@@ -587,6 +599,7 @@ export interface FileRouteTypes {
     | '/(oauth)/dashboard/connect/ics-file'
     | '/(oauth)/dashboard/connect/microsoft'
     | '/(oauth)/dashboard/connect/outlook'
+    | '/(oauth)/dashboard/connect/zoho'
     | '/(dashboard)/dashboard/connect/'
     | '/(dashboard)/dashboard/events/'
     | '/(dashboard)/dashboard/integrations/'
@@ -843,6 +856,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/connect/'
       preLoaderRoute: typeof dashboardDashboardConnectIndexRouteImport
       parentRoute: typeof dashboardDashboardConnectRouteRoute
+    }
+    '/(oauth)/dashboard/connect/zoho': {
+      id: '/(oauth)/dashboard/connect/zoho'
+      path: '/zoho'
+      fullPath: '/dashboard/connect/zoho'
+      preLoaderRoute: typeof oauthDashboardConnectZohoRouteImport
+      parentRoute: typeof oauthDashboardConnectRouteRoute
     }
     '/(oauth)/dashboard/connect/outlook': {
       id: '/(oauth)/dashboard/connect/outlook'
@@ -1113,6 +1133,7 @@ interface oauthDashboardConnectRouteRouteChildren {
   oauthDashboardConnectIcsFileRoute: typeof oauthDashboardConnectIcsFileRoute
   oauthDashboardConnectMicrosoftRoute: typeof oauthDashboardConnectMicrosoftRoute
   oauthDashboardConnectOutlookRoute: typeof oauthDashboardConnectOutlookRoute
+  oauthDashboardConnectZohoRoute: typeof oauthDashboardConnectZohoRoute
 }
 
 const oauthDashboardConnectRouteRouteChildren: oauthDashboardConnectRouteRouteChildren =
@@ -1125,6 +1146,7 @@ const oauthDashboardConnectRouteRouteChildren: oauthDashboardConnectRouteRouteCh
     oauthDashboardConnectIcsFileRoute: oauthDashboardConnectIcsFileRoute,
     oauthDashboardConnectMicrosoftRoute: oauthDashboardConnectMicrosoftRoute,
     oauthDashboardConnectOutlookRoute: oauthDashboardConnectOutlookRoute,
+    oauthDashboardConnectZohoRoute: oauthDashboardConnectZohoRoute,
   }
 
 const oauthDashboardConnectRouteRouteWithChildren =

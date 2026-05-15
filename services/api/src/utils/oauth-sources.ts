@@ -7,6 +7,11 @@ import {
 import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { listUserCalendars as listGoogleCalendars } from "@keeper.sh/calendar/google";
 import { listUserCalendars as listOutlookCalendars } from "@keeper.sh/calendar/outlook";
+import { listUserCalendars as listZohoCalendars } from "@keeper.sh/calendar/zoho";
+import {
+  buildZohoProviderMetadata,
+  getZohoRegionFromMetadata,
+} from "@keeper.sh/calendar";
 import type { database as contextDatabase } from "@/context";
 import { spawnBackgroundJob } from "./background-task";
 import { getSourceProvider } from "@keeper.sh/calendar";
@@ -616,7 +621,11 @@ interface ImportOAuthAccountDependencies {
     accountId: string,
     calendars: ExternalCalendar[],
   ) => Promise<void>;
-  listCalendars: (provider: string, accessToken: string) => Promise<ExternalCalendar[]>;
+  listCalendars: (
+    provider: string,
+    accessToken: string,
+    providerMetadata?: Record<string, unknown> | null,
+  ) => Promise<ExternalCalendar[]>;
   triggerSync: (userId: string, provider: string) => void;
 }
 
@@ -687,7 +696,7 @@ const createDefaultImportOAuthAccountDependencies = (): ImportOAuthAccountDepend
         })),
       );
   },
-  listCalendars: async (provider, accessToken) => {
+  listCalendars: async (provider, accessToken, providerMetadata) => {
     try {
       if (provider === "google") {
         const calendars = await listGoogleCalendars(accessToken);
@@ -696,6 +705,17 @@ const createDefaultImportOAuthAccountDependencies = (): ImportOAuthAccountDepend
       if (provider === "outlook") {
         const calendars = await listOutlookCalendars(accessToken);
         return calendars.map((calendar) => ({ externalId: calendar.id, name: calendar.name }));
+      }
+      if (provider === "zoho") {
+        const region = getZohoRegionFromMetadata(providerMetadata ?? null);
+        const zohoMetadata = buildZohoProviderMetadata(region);
+        const calendars = await listZohoCalendars(accessToken, {
+          providerMetadata: zohoMetadata,
+        });
+        return calendars.map((calendar) => ({
+          externalId: calendar.uid,
+          name: calendar.name ?? calendar.uid,
+        }));
       }
       throw new Error(`No calendar listing support for provider: ${provider}`);
     } catch (error) {
@@ -722,7 +742,7 @@ const importOAuthAccountCalendarsWithDependencies = async (
   options: ImportOAuthAccountOptions,
   dependencies: ImportOAuthAccountDependencies,
 ): Promise<string> => {
-  const { userId, provider, oauthCredentialId, accessToken, email } = options;
+  const { userId, provider, oauthCredentialId, accessToken, email, providerMetadata } = options;
 
   const existingAccountId = await dependencies.findExistingAccountId({
     oauthCredentialId,
@@ -746,7 +766,11 @@ const importOAuthAccountCalendarsWithDependencies = async (
     });
   }
 
-  const externalCalendars = await dependencies.listCalendars(provider, accessToken);
+  const externalCalendars = await dependencies.listCalendars(
+    provider,
+    accessToken,
+    providerMetadata ?? null,
+  );
   const newCalendars = await dependencies.getUnimportedExternalCalendars(
     userId,
     accountId,
@@ -774,6 +798,12 @@ interface ImportOAuthAccountOptions {
   oauthCredentialId: string;
   accessToken: string;
   email: string | null;
+  /**
+   * Provider-specific routing metadata fetched at the OAuth callback (currently
+   * only Zoho uses this — passes the region's calendar API base so the calendar
+   * listing can target the correct datacenter without an extra DB read).
+   */
+  providerMetadata?: Record<string, unknown> | null;
 }
 
 const createOAuthAccountIdWithDatabase = async (
