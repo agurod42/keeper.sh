@@ -100,6 +100,7 @@ const calendarsTable = pgTable(
       .references(() => calendarAccountsTable.id, { onDelete: "cascade" }),
     calendarType: text().notNull(),
     calendarUrl: text(),
+    color: text(),
     createdAt: timestamp().notNull().defaultNow(),
     excludeAllDayEvents: boolean().notNull().default(false),
     excludeEventDescription: boolean().notNull().default(false),
@@ -335,6 +336,7 @@ const icalFeedSettingsTable = pgTable("ical_feed_settings", {
   includeEventName: boolean().notNull().default(false),
   includeEventDescription: boolean().notNull().default(false),
   includeEventLocation: boolean().notNull().default(false),
+  includeCalendarSource: boolean().notNull().default(false),
   excludeAllDayEvents: boolean().notNull().default(false),
   customEventName: text().notNull().default("Busy"),
   updatedAt: timestamp()
