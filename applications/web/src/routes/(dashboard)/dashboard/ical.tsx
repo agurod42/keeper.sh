@@ -54,6 +54,7 @@ interface FeedSettings {
   includeEventName: boolean;
   includeEventDescription: boolean;
   includeEventLocation: boolean;
+  includeCalendarSource: boolean;
   excludeAllDayEvents: boolean;
   customEventName: string;
 }
@@ -184,6 +185,7 @@ function FeedSettingsToggles({ locked }: { locked: boolean }) {
         <EventNameToggle locked={locked} />
         <FeedSettingToggle locked={locked} field="includeEventDescription" label="Include Event Description" />
         <FeedSettingToggle locked={locked} field="includeEventLocation" label="Include Event Location" />
+        <FeedSettingToggle locked={locked} field="includeCalendarSource" label="Include Calendar Source" />
         <FeedSettingToggle locked={locked} field="excludeAllDayEvents" label="Exclude All Day Events" />
       </NavigationMenu>
     </PremiumFeatureGate>
