@@ -24,6 +24,7 @@ const icalSettingsPatchBodySchema = type({
   "includeEventName?": "boolean",
   "includeEventDescription?": "boolean",
   "includeEventLocation?": "boolean",
+  "includeCalendarSource?": "boolean",
   "excludeAllDayEvents?": "boolean",
   "customEventName?": "string",
   "+": "reject",

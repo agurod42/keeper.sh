@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = {
   includeEventName: false,
   includeEventDescription: false,
   includeEventLocation: false,
+  includeCalendarSource: false,
   excludeAllDayEvents: false,
   customEventName: "Busy",
 };
@@ -44,6 +45,8 @@ const makeEvent = (overrides: Partial<CalendarEvent> = {}): CalendarEvent => ({
   endTime: new Date("2026-03-29T00:00:00Z"),
   isAllDay: false,
   calendarName: "Work",
+  calendarId: "calendar-1",
+  calendarColor: null,
   ...overrides,
 });
 
@@ -159,5 +162,50 @@ describe("resolveEventSummary", () => {
       { includeEventName: false, customEventName: "{{event_name}}" },
     );
     expect(result).toBe("Untitled");
+  });
+});
+
+describe("calendar source metadata", () => {
+  it("does not emit categories or color when toggle is off", () => {
+    const ics = formatEventsAsIcal(
+      [makeEvent({ calendarId: "cal-x", calendarColor: "#4285F4" })],
+      DEFAULT_SETTINGS,
+    );
+    expect(ics).not.toContain("CATEGORIES:");
+    expect(ics).not.toContain("COLOR:");
+    expect(ics).not.toContain("X-APPLE-CALENDAR-COLOR:");
+  });
+
+  it("emits CATEGORIES, COLOR, and X-APPLE-CALENDAR-COLOR when toggle is on", () => {
+    const ics = formatEventsAsIcal(
+      [makeEvent({ calendarName: "Work", calendarId: "cal-x", calendarColor: "#4285F4" })],
+      { ...DEFAULT_SETTINGS, includeCalendarSource: true },
+    );
+    expect(ics).toContain("CATEGORIES:Work");
+    expect(ics).toContain("COLOR:#4285F4");
+    expect(ics).toContain("X-APPLE-CALENDAR-COLOR:#4285F4");
+  });
+
+  it("falls back to a deterministic palette color when calendar has no native color", () => {
+    const ics = formatEventsAsIcal(
+      [makeEvent({ calendarId: "deterministic-id", calendarColor: null })],
+      { ...DEFAULT_SETTINGS, includeCalendarSource: true },
+    );
+    expect(ics).toMatch(/COLOR:#[0-9A-F]{6}/);
+    expect(ics).toMatch(/X-APPLE-CALENDAR-COLOR:#[0-9A-F]{6}/);
+  });
+
+  it("emits per-event source metadata for multiple events", () => {
+    const ics = formatEventsAsIcal(
+      [
+        makeEvent({ id: "a", calendarName: "Work", calendarId: "cal-a", calendarColor: "#FF0000" }),
+        makeEvent({ id: "b", calendarName: "Personal", calendarId: "cal-b", calendarColor: "#00FF00" }),
+      ],
+      { ...DEFAULT_SETTINGS, includeCalendarSource: true },
+    );
+    expect(ics).toContain("CATEGORIES:Work");
+    expect(ics).toContain("CATEGORIES:Personal");
+    expect(ics).toContain("COLOR:#FF0000");
+    expect(ics).toContain("COLOR:#00FF00");
   });
 });

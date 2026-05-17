@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   includeEventName: false,
   includeEventDescription: false,
   includeEventLocation: false,
+  includeCalendarSource: false,
   excludeAllDayEvents: false,
   customEventName: "Busy",
 };
@@ -20,6 +21,7 @@ const ICAL_BOOLEAN_UPDATE_FIELDS = [
   "includeEventName",
   "includeEventDescription",
   "includeEventLocation",
+  "includeCalendarSource",
   "excludeAllDayEvents",
 ] as const;
 

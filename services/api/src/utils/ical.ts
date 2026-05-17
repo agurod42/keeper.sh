@@ -9,6 +9,7 @@ const DEFAULT_FEED_SETTINGS: FeedSettings = {
   includeEventName: false,
   includeEventDescription: false,
   includeEventLocation: false,
+  includeCalendarSource: false,
   excludeAllDayEvents: false,
   customEventName: "Busy",
 };
@@ -58,6 +59,8 @@ const generateUserCalendar = async (identifier: string): Promise<string | null> 
       endTime: eventStatesTable.endTime,
       isAllDay: eventStatesTable.isAllDay,
       calendarName: calendarsTable.name,
+      calendarColor: calendarsTable.color,
+      calendarId: calendarsTable.id,
     })
     .from(eventStatesTable)
     .innerJoin(calendarsTable, eq(eventStatesTable.calendarId, calendarsTable.id))
