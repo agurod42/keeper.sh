@@ -47,6 +47,8 @@ const makeEvent = (overrides: Partial<CalendarEvent> = {}): CalendarEvent => ({
   calendarName: "Work",
   calendarId: "calendar-1",
   calendarColor: null,
+  recurrenceRule: null,
+  exceptionDates: null,
   ...overrides,
 });
 
@@ -207,5 +209,50 @@ describe("calendar source metadata", () => {
     expect(ics).toContain("CATEGORIES:Personal");
     expect(ics).toContain("COLOR:#FF0000");
     expect(ics).toContain("COLOR:#00FF00");
+  });
+
+  describe("recurring events", () => {
+    // Regression: previously the formatter dropped recurrenceRule and emitted
+    // each recurring event as a single one-off VEVENT (matching the master's
+    // DTSTART only). Calendar clients would then show one occurrence in the
+    // distant past instead of the expected weekly/yearly/etc. recurrences.
+    it("emits RRULE for events with a recurrenceRule", () => {
+      const ics = formatEventsAsIcal(
+        [makeEvent({
+          isAllDay: false,
+          startTime: new Date("2025-10-06T18:00:00Z"),
+          endTime: new Date("2025-10-06T22:30:00Z"),
+          recurrenceRule: { frequency: "WEEKLY", byDay: [{ day: "MO" }, { day: "TU" }, { day: "WE" }, { day: "TH" }, { day: "FR" }] } as never,
+        })],
+        DEFAULT_SETTINGS,
+      );
+
+      expect(ics).toContain("RRULE:");
+      expect(ics).toContain("FREQ=WEEKLY");
+      expect(ics).toMatch(/BYDAY=MO,TU,WE,TH,FR|BYDAY=MO;BYDAY=TU/);
+    });
+
+    it("emits EXDATE for events with exceptionDates", () => {
+      const ics = formatEventsAsIcal(
+        [makeEvent({
+          isAllDay: false,
+          startTime: new Date("2025-10-06T18:00:00Z"),
+          endTime: new Date("2025-10-06T22:30:00Z"),
+          recurrenceRule: { frequency: "WEEKLY" } as never,
+          exceptionDates: [{ date: new Date("2026-04-02T18:00:00Z"), type: "DATE-TIME" }] as never,
+        })],
+        DEFAULT_SETTINGS,
+      );
+
+      expect(ics).toContain("RRULE:");
+      expect(ics).toContain("EXDATE");
+      expect(ics).toContain("20260402T180000Z");
+    });
+
+    it("does not emit RRULE for one-off events", () => {
+      const ics = formatEventsAsIcal([makeEvent()], DEFAULT_SETTINGS);
+      expect(ics).not.toContain("RRULE:");
+      expect(ics).not.toContain("EXDATE");
+    });
   });
 });

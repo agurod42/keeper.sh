@@ -1,7 +1,7 @@
 import { KEEPER_EVENT_SUFFIX } from "@keeper.sh/constants";
 import { resolveIsAllDayEvent } from "@keeper.sh/calendar";
 import { generateIcsCalendar } from "ts-ics";
-import type { IcsCalendar, IcsEvent } from "ts-ics";
+import type { IcsCalendar, IcsEvent, IcsRecurrenceRule, IcsDateObject } from "ts-ics";
 import { resolveSourceColor } from "./ical-source-color";
 
 interface FeedSettings {
@@ -24,6 +24,8 @@ interface CalendarEvent {
   calendarName: string;
   calendarId: string;
   calendarColor: string | null;
+  recurrenceRule: IcsRecurrenceRule | null;
+  exceptionDates: IcsDateObject[] | null;
 }
 
 const toAllDayShape = (event: CalendarEvent) => ({
@@ -93,6 +95,14 @@ const formatEventsAsIcal = (events: CalendarEvent[], settings: FeedSettings): st
       summary: resolveEventSummary(event, settings),
       uid,
     };
+
+    if (event.recurrenceRule) {
+      icsEvent.recurrenceRule = event.recurrenceRule;
+    }
+
+    if (event.exceptionDates && event.exceptionDates.length > 0) {
+      icsEvent.exceptionDates = event.exceptionDates;
+    }
 
     if (settings.includeEventDescription && event.description) {
       icsEvent.description = event.description;
