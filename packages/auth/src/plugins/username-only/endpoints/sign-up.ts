@@ -1,6 +1,6 @@
 import { createAuthEndpoint } from "better-auth/api";
 import { APIError } from "better-call";
-import { z } from "zod";
+import * as z from "zod";
 import type { UsernameOnlyConfig } from "../utils/config";
 import type { User } from "../types";
 

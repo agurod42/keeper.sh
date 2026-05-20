@@ -1,6 +1,6 @@
 import { createAuthEndpoint } from "better-auth/api";
 import { APIError } from "better-call";
-import { z } from "zod";
+import * as z from "zod";
 import type { CredentialAccount, User } from "../types";
 
 const INVALID_CREDENTIALS_ERROR = {
