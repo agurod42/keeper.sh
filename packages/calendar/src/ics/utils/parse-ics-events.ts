@@ -81,7 +81,7 @@ const parseIcsEvents = (calendar: IcsCalendar): EventTimeSlot[] => {
       isAllDay: event.start.type === "DATE",
       location: event.location,
       recurrenceRule: event.recurrenceRule,
-      recurrenceId: event.recurrenceId?.date,
+      recurrenceId: event.recurrenceId?.value?.date,
       startTime,
       startTimeZone: getEventStartTimeZone(event),
       title: event.summary,
