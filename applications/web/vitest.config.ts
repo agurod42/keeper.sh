@@ -11,5 +11,10 @@ export default defineConfig({
   test: {
     globals: true,
     include: ["./tests/**/*.test.ts", "./tests/**/*.test.tsx"],
+    coverage: {
+      provider: "istanbul",
+      include: ["src/**"],
+      exclude: ["src/content/**", "**/*.md", "**/*.mdx"],
+    },
   },
 });

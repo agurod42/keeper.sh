@@ -13,6 +13,7 @@
     "migrate": "drizzle-kit migrate",
     "types": "tsc --noEmit",
     "test": "bun x --bun vitest run",
+    "coverage": "TZ=UTC bun x --bun vitest run --coverage --coverage.provider=istanbul --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.include=src/** --coverage.exclude=**/*.test.ts",
     "lint": "oxlint ."
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@keeper.sh/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/pg": "8.16.0",
+    "@vitest/coverage-istanbul": "^4.1.7",
     "drizzle-kit": "0.31.8",
     "typescript": "5.9.3",
     "vitest": "^4.1.4"
