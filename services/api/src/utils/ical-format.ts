@@ -26,6 +26,8 @@ interface CalendarEvent {
   calendarColor: string | null;
   recurrenceRule: IcsRecurrenceRule | null;
   exceptionDates: IcsDateObject[] | null;
+  recurrenceId: Date | null;
+  sourceEventUid: string | null;
 }
 
 const toAllDayShape = (event: CalendarEvent) => ({
@@ -75,6 +77,76 @@ const injectSourceColors = (ics: string, colorByUid: Map<string, string>): strin
   return out.join(lineBreak);
 };
 
+/**
+ * Group rows by (calendarId, sourceEventUid) so we can emit a recurring master
+ * with its modified-occurrence overrides under a single UID. Within a group,
+ * the master is the row with `recurrenceRule != null` and `recurrenceId == null`;
+ * the rest are overrides that need `RECURRENCE-ID` linking back to the master.
+ *
+ * Returns groups where the FIRST element is the master (or, if no master,
+ * the only/first row), and the rest are overrides.
+ */
+const groupRecurringEvents = (events: CalendarEvent[]): CalendarEvent[][] => {
+  const groups = new Map<string, CalendarEvent[]>();
+  const singletons: CalendarEvent[][] = [];
+
+  for (const event of events) {
+    if (!event.sourceEventUid) {
+      // Rows without a sourceEventUid can't be reliably linked.
+      singletons.push([event]);
+      continue;
+    }
+    const key = `${event.calendarId}::${event.sourceEventUid}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(event);
+    } else {
+      groups.set(key, [event]);
+    }
+  }
+
+  const result: CalendarEvent[][] = [];
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      result.push(group);
+      continue;
+    }
+    // Sort so master comes first.
+    const masterIdx = group.findIndex((e) => e.recurrenceRule !== null && e.recurrenceId === null);
+    if (masterIdx > 0) {
+      const [master] = group.splice(masterIdx, 1);
+      group.unshift(master);
+    }
+    result.push(group);
+  }
+  return [...result, ...singletons];
+};
+
+const buildBaseIcsEvent = (event: CalendarEvent, uid: string, settings: FeedSettings): IcsEvent => {
+  const isAllDay = resolveIsAllDayEvent(toAllDayShape(event));
+  const icsEvent: IcsEvent = {
+    end: { date: event.endTime, ...(isAllDay && { type: "DATE" as const }) },
+    stamp: { date: new Date() },
+    start: { date: event.startTime, ...(isAllDay && { type: "DATE" as const }) },
+    summary: resolveEventSummary(event, settings),
+    uid,
+  };
+
+  if (settings.includeEventDescription && event.description) {
+    icsEvent.description = event.description;
+  }
+
+  if (settings.includeEventLocation && event.location) {
+    icsEvent.location = event.location;
+  }
+
+  if (settings.includeCalendarSource) {
+    icsEvent.categories = [event.calendarName];
+  }
+
+  return icsEvent;
+};
+
 const formatEventsAsIcal = (events: CalendarEvent[], settings: FeedSettings): string => {
   const filteredEvents = events.filter((event) => {
     if (!settings.excludeAllDayEvents) {
@@ -84,44 +156,35 @@ const formatEventsAsIcal = (events: CalendarEvent[], settings: FeedSettings): st
   });
 
   const colorByUid = new Map<string, string>();
+  const icsEvents: IcsEvent[] = [];
 
-  const icsEvents: IcsEvent[] = filteredEvents.map((event) => {
-    const isAllDay = resolveIsAllDayEvent(toAllDayShape(event));
-    const uid = `${event.id}${KEEPER_EVENT_SUFFIX}`;
-    const icsEvent: IcsEvent = {
-      end: { date: event.endTime, ...(isAllDay && { type: "DATE" as const }) },
-      stamp: { date: new Date() },
-      start: { date: event.startTime, ...(isAllDay && { type: "DATE" as const }) },
-      summary: resolveEventSummary(event, settings),
-      uid,
-    };
+  for (const group of groupRecurringEvents(filteredEvents)) {
+    const master = group[0]!;
+    const uid = `${master.id}${KEEPER_EVENT_SUFFIX}`;
+    const color = settings.includeCalendarSource
+      ? resolveSourceColor({ calendarId: master.calendarId, nativeColor: master.calendarColor })
+      : null;
 
-    if (event.recurrenceRule) {
-      icsEvent.recurrenceRule = event.recurrenceRule;
+    for (const event of group) {
+      // Overrides reuse the master's UID; the master itself uses its own.
+      const ics = buildBaseIcsEvent(event, uid, settings);
+      if (event !== master && event.recurrenceId) {
+        // ts-ics shape: { value: { date: Date } } → serializes as RECURRENCE-ID.
+        ics.recurrenceId = { value: { date: event.recurrenceId } };
+      }
+      if (event.recurrenceRule && !event.recurrenceId) {
+        ics.recurrenceRule = event.recurrenceRule;
+      }
+      if (event.exceptionDates && event.exceptionDates.length > 0 && !event.recurrenceId) {
+        ics.exceptionDates = event.exceptionDates;
+      }
+      icsEvents.push(ics);
     }
 
-    if (event.exceptionDates && event.exceptionDates.length > 0) {
-      icsEvent.exceptionDates = event.exceptionDates;
+    if (color) {
+      colorByUid.set(uid, color);
     }
-
-    if (settings.includeEventDescription && event.description) {
-      icsEvent.description = event.description;
-    }
-
-    if (settings.includeEventLocation && event.location) {
-      icsEvent.location = event.location;
-    }
-
-    if (settings.includeCalendarSource) {
-      icsEvent.categories = [event.calendarName];
-      colorByUid.set(
-        uid,
-        resolveSourceColor({ calendarId: event.calendarId, nativeColor: event.calendarColor }),
-      );
-    }
-
-    return icsEvent;
-  });
+  }
 
   const calendar: IcsCalendar = {
     events: icsEvents,

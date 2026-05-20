@@ -146,6 +146,7 @@ const createCalDAVSourceProvider = (
           isAllDay: event.isAllDay,
           location: event.location,
           recurrenceRule: stringifyIfPresent(event.recurrenceRule),
+          recurrenceId: event.recurrenceId,
           sourceEventType: event.sourceEventType ?? "default",
           sourceEventUid: event.uid,
           startTime: event.startTime,

@@ -49,6 +49,8 @@ const makeEvent = (overrides: Partial<CalendarEvent> = {}): CalendarEvent => ({
   calendarColor: null,
   recurrenceRule: null,
   exceptionDates: null,
+  recurrenceId: null,
+  sourceEventUid: null,
   ...overrides,
 });
 
@@ -253,6 +255,65 @@ describe("calendar source metadata", () => {
       const ics = formatEventsAsIcal([makeEvent()], DEFAULT_SETTINGS);
       expect(ics).not.toContain("RRULE:");
       expect(ics).not.toContain("EXDATE");
+    });
+
+    // Regression: when a recurring event has modified instances (e.g. user
+    // moves a single occurrence to a different time), the source serializes
+    // each override as a separate VEVENT with the same UID + RECURRENCE-ID.
+    // Previously we emitted each row with its own UID, so calendar clients
+    // showed both the original (from RRULE expansion) AND the override.
+    //
+    // Now we group rows by sourceEventUid: emit one master with RRULE, and
+    // emit each override under the master's UID with RECURRENCE-ID pointing
+    // back at the occurrence it replaces.
+    it("groups master + overrides under a single UID with RECURRENCE-ID", () => {
+      const sourceUid = "outlook-meeting-123";
+      const ics = formatEventsAsIcal(
+        [
+          makeEvent({
+            id: "master-id",
+            sourceEventUid: sourceUid,
+            startTime: new Date("2026-02-03T13:00:00Z"),
+            endTime: new Date("2026-02-03T13:30:00Z"),
+            recurrenceRule: { frequency: "WEEKLY", byDay: [{ day: "MO" }, { day: "TU" }, { day: "WE" }, { day: "TH" }, { day: "FR" }] } as never,
+          }),
+          makeEvent({
+            id: "override-id",
+            sourceEventUid: sourceUid,
+            startTime: new Date("2026-05-19T17:30:00Z"),
+            endTime: new Date("2026-05-19T18:00:00Z"),
+            recurrenceId: new Date("2026-05-19T13:00:00Z"),
+          }),
+        ],
+        DEFAULT_SETTINGS,
+      );
+
+      // Master event present with RRULE and its own (master-derived) UID.
+      expect(ics).toContain("UID:master-id@keeper.sh");
+      expect(ics).toContain("RRULE:FREQ=WEEKLY");
+
+      // Override reuses the master's UID and emits RECURRENCE-ID.
+      expect(ics).toContain("RECURRENCE-ID");
+      expect(ics).toContain("20260519T130000Z");
+      // Override's new DTSTART.
+      expect(ics).toContain("DTSTART:20260519T173000Z");
+
+      // The override-id should NOT appear as a top-level UID — it was absorbed
+      // into the master's UID for the RECURRENCE-ID emission.
+      expect(ics).not.toContain("UID:override-id@keeper.sh");
+    });
+
+    it("emits standalone UIDs for events lacking sourceEventUid", () => {
+      const ics = formatEventsAsIcal(
+        [
+          makeEvent({ id: "loose-1", sourceEventUid: null }),
+          makeEvent({ id: "loose-2", sourceEventUid: null }),
+        ],
+        DEFAULT_SETTINGS,
+      );
+      expect(ics).toContain("UID:loose-1@keeper.sh");
+      expect(ics).toContain("UID:loose-2@keeper.sh");
+      expect(ics).not.toContain("RECURRENCE-ID");
     });
   });
 });

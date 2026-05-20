@@ -67,6 +67,7 @@ const createCalDAVSourceFetcher = (config: CalDAVSourceFetcherConfig): CalDAVSou
           isAllDay: parsed.isAllDay,
           location: parsed.location,
           recurrenceRule: parsed.recurrenceRule,
+          recurrenceId: parsed.recurrenceId,
           startTime: parsed.startTime,
           startTimeZone: parsed.startTimeZone,
           title: parsed.title,

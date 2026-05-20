@@ -53,6 +53,7 @@ const createIcsSourceFetcher = (config: IcsSourceFetcherConfig): IcsSourceFetche
       isAllDay: event.isAllDay,
       location: event.location,
       recurrenceRule: event.recurrenceRule,
+      recurrenceId: event.recurrenceId,
       startTime: event.startTime,
       startTimeZone: event.startTimeZone,
       title: event.title,

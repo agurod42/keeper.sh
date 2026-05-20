@@ -80,6 +80,7 @@ interface ParsedCalendarEvent {
   startTimeZone?: string;
   recurrenceRule?: object;
   exceptionDates?: object;
+  recurrenceId?: Date;
 }
 
 const mapAvailability = (transparency: "TRANSPARENT" | "OPAQUE" | undefined) => {
@@ -107,6 +108,7 @@ const mapIcsEventToParsedEvent = (event: IcsEvent): ParsedCalendarEvent | null =
     isAllDay: event.start.type === "DATE",
     location: event.location,
     recurrenceRule: event.recurrenceRule,
+    recurrenceId: event.recurrenceId?.date,
     startTime,
     startTimeZone: event.start.local?.timezone,
     title: event.summary,

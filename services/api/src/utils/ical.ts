@@ -107,6 +107,8 @@ const generateUserCalendar = async (identifier: string): Promise<string | null> 
       isAllDay: eventStatesTable.isAllDay,
       recurrenceRule: eventStatesTable.recurrenceRule,
       exceptionDates: eventStatesTable.exceptionDates,
+      recurrenceId: eventStatesTable.recurrenceId,
+      sourceEventUid: eventStatesTable.sourceEventUid,
       calendarName: calendarsTable.name,
       calendarColor: calendarsTable.color,
       calendarId: calendarsTable.id,
