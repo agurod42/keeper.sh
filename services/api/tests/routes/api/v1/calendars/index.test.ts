@@ -36,4 +36,20 @@ describe("v1 calendars route", () => {
       { id: "s1", name: "Source 1", provider: "Google", account: "test@gmail.com" },
     ]);
   });
+
+  it("filters by provider", async () => {
+    const mockSources = [
+      { id: "s1", name: "Google Source", providerName: "Google", accountLabel: "g@test.com", provider: "google" },
+      { id: "s2", name: "Outlook Source", providerName: "Outlook", accountLabel: "o@test.com", provider: "outlook" },
+    ];
+    mockKeeperApi.listSources.mockResolvedValue(mockSources);
+
+    const request = new Request("http://localhost:3000/api/v1/calendars?provider=google");
+    const response = await GET({ request, userId: "user-1" } as any);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toHaveLength(1);
+    expect(data[0].id).toBe("s1");
+  });
 });

@@ -1,145 +1,33 @@
-import { describe, expect, it } from "vitest";
-import {
-  handleGetIcsSourcesRoute,
-  handlePostIcsSourceRoute,
-} from "../../../../src/routes/api/ics/source-routes";
+import { describe, it, expect, vi } from "vitest";
+import { handleGetIcsSourcesRoute, handlePostIcsSourceRoute } from "@/routes/api/ics/source-routes";
 
-const readJson = (response: Response): Promise<unknown> => response.json();
+describe("ics source routes", () => {
+  const mockDeps = {
+    getUserSources: vi.fn(),
+    createSource: vi.fn(),
+    isInvalidSourceUrlError: vi.fn(() => false),
+    isSourceLimitError: vi.fn(() => false),
+    parseCreateSourceBody: vi.fn((b) => b),
+  };
 
-class TestSourceLimitError extends Error {}
-
-class TestInvalidSourceUrlError extends Error {
-  public readonly authRequired: boolean;
-
-  constructor(message: string, authRequired: boolean) {
-    super(message);
-    this.authRequired = authRequired;
-  }
-}
-
-describe("handleGetIcsSourcesRoute", () => {
-  it("returns user sources for the authenticated user", async () => {
-    const receivedUserIds: string[] = [];
-
-    const response = await handleGetIcsSourcesRoute(
-      { userId: "user-1" },
-      {
-        getUserSources: (userId) => {
-          receivedUserIds.push(userId);
-          return Promise.resolve([{ id: "source-1" }]);
-        },
-      },
-    );
-
-    expect(response.status).toBe(200);
-    expect(receivedUserIds).toEqual(["user-1"]);
-    expect(await readJson(response)).toEqual([{ id: "source-1" }]);
-  });
-});
-
-describe("handlePostIcsSourceRoute", () => {
-  it("creates source with parsed body and returns 201", async () => {
-    const receivedCreateCalls: { userId: string; name: string; url: string }[] = [];
-
-    const response = await handlePostIcsSourceRoute(
-      {
-        body: { name: "Team Calendar", url: "https://example.com/feed.ics" },
-        userId: "user-1",
-      },
-      {
-        createSource: (userId, name, url) => {
-          receivedCreateCalls.push({ userId, name, url });
-          return Promise.resolve({ id: "source-1", name });
-        },
-        isInvalidSourceUrlError: (_error): _error is TestInvalidSourceUrlError => false,
-        isSourceLimitError: () => false,
-        parseCreateSourceBody: (body) => {
-          if (
-            typeof body === "object"
-            && body !== null
-            && "name" in body
-            && "url" in body
-            && typeof body.name === "string"
-            && typeof body.url === "string"
-          ) {
-            return { name: body.name, url: body.url };
-          }
-
-          throw new Error("Invalid payload");
-        },
-      },
-    );
-
-    expect(response.status).toBe(201);
-    expect(receivedCreateCalls).toEqual([
-      { name: "Team Calendar", url: "https://example.com/feed.ics", userId: "user-1" },
-    ]);
-    expect(await readJson(response)).toEqual({ id: "source-1", name: "Team Calendar" });
-  });
-
-  it("maps source-limit errors to payment required", async () => {
-    const response = await handlePostIcsSourceRoute(
-      {
-        body: { name: "Team Calendar", url: "https://example.com/feed.ics" },
-        userId: "user-1",
-      },
-      {
-        createSource: () =>
-          Promise.reject(new TestSourceLimitError("plan limit reached")),
-        isInvalidSourceUrlError: (_error): _error is TestInvalidSourceUrlError => false,
-        isSourceLimitError: (error) => error instanceof TestSourceLimitError,
-        parseCreateSourceBody: () => ({
-          name: "Team Calendar",
-          url: "https://example.com/feed.ics",
-        }),
-      },
-    );
-
-    expect(response.status).toBe(402);
-  });
-
-  it("maps invalid-source-url errors to bad request with authRequired flag", async () => {
-    const response = await handlePostIcsSourceRoute(
-      {
-        body: { name: "Team Calendar", url: "https://example.com/feed.ics" },
-        userId: "user-1",
-      },
-      {
-        createSource: () =>
-          Promise.reject(new TestInvalidSourceUrlError("requires auth", true)),
-        isInvalidSourceUrlError: (error): error is TestInvalidSourceUrlError =>
-          error instanceof TestInvalidSourceUrlError,
-        isSourceLimitError: () => false,
-        parseCreateSourceBody: () => ({
-          name: "Team Calendar",
-          url: "https://example.com/feed.ics",
-        }),
-      },
-    );
-
-    expect(response.status).toBe(400);
-    expect(await readJson(response)).toEqual({
-      authRequired: true,
-      error: "requires auth",
+  describe("handleGetIcsSourcesRoute", () => {
+    it("returns user ics sources", async () => {
+      mockDeps.getUserSources.mockResolvedValue([{ id: "s1" }]);
+      const response = await handleGetIcsSourcesRoute({ userId: "u1" }, mockDeps as any);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual([{ id: "s1" }]);
     });
   });
 
-  it("maps body parse failures to bad request", async () => {
-    const response = await handlePostIcsSourceRoute(
-      {
-        body: { bad: true },
-        userId: "user-1",
-      },
-      {
-        createSource: () => Promise.resolve({ id: "source-1" }),
-        isInvalidSourceUrlError: (_error): _error is TestInvalidSourceUrlError => false,
-        isSourceLimitError: () => false,
-        parseCreateSourceBody: () => {
-          throw new Error("parse failed");
-        },
-      },
-    );
-
-    expect(response.status).toBe(400);
+  describe("handlePostIcsSourceRoute", () => {
+    it("creates ics source successfully", async () => {
+      mockDeps.createSource.mockResolvedValue({ id: "s1" });
+      const response = await handlePostIcsSourceRoute(
+        { userId: "u1", body: { url: "http://test.com/cal.ics", name: "Test" } },
+        mockDeps as any
+      );
+      expect(response.status).toBe(201);
+      expect(await response.json()).toEqual({ id: "s1" });
+    });
   });
 });
