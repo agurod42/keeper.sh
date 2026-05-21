@@ -35,6 +35,7 @@ const fetchEvents = async (url: string): Promise<CalendarEvent[]> => {
   }));
 };
 
+export { deduplicateEvents, resolveEvents };
 export function useEvents() {
   const todayStart = useStartOfToday();
 

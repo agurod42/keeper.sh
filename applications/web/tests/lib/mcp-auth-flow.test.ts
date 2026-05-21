@@ -2,7 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   getMcpAuthorizationSearch,
   resolvePostAuthRedirect,
+  resolvePathWithSearch,
 } from "../../src/lib/mcp-auth-flow";
+
+describe("resolvePathWithSearch", () => {
+  it("appends search params to path", () => {
+    expect(resolvePathWithSearch("/path", { foo: "bar" })).toBe("/path?foo=bar");
+  });
+
+  it("returns path as is if no search", () => {
+    expect(resolvePathWithSearch("/path")).toBe("/path");
+    expect(resolvePathWithSearch("/path", {})).toBe("/path");
+  });
+});
 
 describe("getMcpAuthorizationSearch", () => {
   it("recognizes MCP authorization search params copied from Better Auth", () => {

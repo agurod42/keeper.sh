@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { CompositeSyncState } from "@/state/sync";
-import { resolveSyncPercent } from "../../../../src/features/dashboard/components/sync-status-helpers";
+import { resolveSyncPercent, clampPercent } from "../../../../src/features/dashboard/components/sync-status-helpers";
+
+describe("clampPercent", () => {
+  it("clamps values between 0 and 100", () => {
+    expect(clampPercent(-10)).toBe(0);
+    expect(clampPercent(150)).toBe(100);
+    expect(clampPercent(50)).toBe(50);
+  });
+
+  it("returns 0 for non-finite values", () => {
+    expect(clampPercent(NaN)).toBe(0);
+    expect(clampPercent(Infinity)).toBe(0);
+  });
+});
 
 const createComposite = (
   overrides: Partial<CompositeSyncState> = {},
