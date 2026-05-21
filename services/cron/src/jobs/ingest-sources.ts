@@ -166,7 +166,7 @@ interface IngestionSourceResult {
   ingestEvents: Record<string, unknown>[];
 }
 
-const ingestOAuthSources = async (): Promise<{ added: number; removed: number; errors: number; ingestEvents: Record<string, unknown>[] }> => {
+export const ingestOAuthSources = async (): Promise<{ added: number; removed: number; errors: number; ingestEvents: Record<string, unknown>[] }> => {
   const oauthSources = await database
     .select({
       accountId: calendarAccountsTable.id,
@@ -339,7 +339,7 @@ const ingestOAuthSources = async (): Promise<{ added: number; removed: number; e
   return { added, removed, errors, ingestEvents: allIngestEvents };
 };
 
-const ingestCalDAVSources = async (): Promise<{ added: number; removed: number; errors: number; ingestEvents: Record<string, unknown>[] }> => {
+export const ingestCalDAVSources = async (): Promise<{ added: number; removed: number; errors: number; ingestEvents: Record<string, unknown>[] }> => {
   if (!env.ENCRYPTION_KEY) {
     return { added: 0, removed: 0, errors: 0, ingestEvents: [] };
   }
@@ -467,7 +467,7 @@ const ingestCalDAVSources = async (): Promise<{ added: number; removed: number; 
   return { added, removed, errors, ingestEvents: allIngestEvents };
 };
 
-const ingestIcsSources = async (): Promise<{ added: number; removed: number; errors: number; ingestEvents: Record<string, unknown>[] }> => {
+export const ingestIcsSources = async (): Promise<{ added: number; removed: number; errors: number; ingestEvents: Record<string, unknown>[] }> => {
   const icsSources = await database
     .select({
       calendarId: calendarsTable.id,
