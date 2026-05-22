@@ -290,7 +290,7 @@ describe("calendar source metadata", () => {
 
       // Master event present with RRULE and its own (master-derived) UID.
       expect(ics).toContain("UID:master-id@keeper.sh");
-      expect(ics).toContain("RRULE:FREQ=WEEKLY");
+      expect(ics).toMatch(/RRULE:[^\n]*FREQ=WEEKLY/);
 
       // Override reuses the master's UID and emits RECURRENCE-ID.
       expect(ics).toContain("RECURRENCE-ID");
