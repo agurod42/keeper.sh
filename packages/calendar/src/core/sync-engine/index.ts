@@ -328,6 +328,7 @@ interface SyncCalendarResult extends SyncResult {
 
 const EMPTY_RESULT: SyncCalendarResult = { added: 0, addFailed: 0, removed: 0, removeFailed: 0, conflictsResolved: 0, errors: [] };
 
+export { processAddResults, processDeleteResults };
 const syncCalendar = async (options: SyncCalendarOptions): Promise<SyncCalendarResult> => {
   const { userId, calendarId, provider, readState, isCurrent, isInvalidated, flush, onSyncEvent, onProgress } = options;
 

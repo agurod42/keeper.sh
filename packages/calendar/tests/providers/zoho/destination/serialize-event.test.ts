@@ -29,4 +29,17 @@ describe("serializeZohoEvent", () => {
     expect(result.dateandtime.start).toBe("20260520");
     expect(result.isallday).toBe(true);
   });
+
+  it("includes optional fields", () => {
+    const event = {
+      summary: "T",
+      startTime: new Date(),
+      endTime: new Date(),
+      description: "D",
+      location: "L",
+    } as any;
+    const result = JSON.parse(serializeZohoEvent(event));
+    expect(result.description).toBe("D");
+    expect(result.location).toBe("L");
+  });
 });

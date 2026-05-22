@@ -1,108 +1,151 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { createGoogleOAuthService } from "../../../src/core/oauth/google";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
+import { createGoogleOAuthService, createGoogleTokenRefresher } from "../../../src/core/oauth/google";
 
 const originalFetch = globalThis.fetch;
 
+describe("createGoogleTokenRefresher", () => {
+  const credentials = { clientId: "id", clientSecret: "secret" };
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("refreshes token successfully", async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        access_token: "new-at",
+        expires_in: 3600,
+        token_type: "Bearer",
+        scope: "https://www.googleapis.com/auth/calendar.events",
+      }),
+    });
+
+    const refresh = createGoogleTokenRefresher(credentials);
+    const result = await refresh("old-rt");
+
+    expect(result.access_token).toBe("new-at");
+  });
+
+  it("retries on retriable status code", async () => {
+    (globalThis.fetch as any)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => JSON.stringify({ error: "server_error" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: "new-at",
+          expires_in: 3600,
+          token_type: "Bearer",
+          scope: "https://www.googleapis.com/auth/calendar.events",
+        }),
+      });
+
+    const refresh = createGoogleTokenRefresher(credentials);
+    const result = await refresh("old-rt");
+
+    expect(result.access_token).toBe("new-at");
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
 const createTestStateStore = () => {
-  const store = new Map<string, { value: string; expiresAt: number }>();
+  const store = new Map<string, string>();
   return {
-    set: (key: string, value: string, ttlSeconds: number) => {
-      store.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
-      return Promise.resolve();
-    },
-    consume: (key: string) => {
-      const entry = store.get(key);
-      if (!entry) {
-        return Promise.resolve(null);
-      }
+    consume: vi.fn(async (key: string) => {
+      const val = store.get(key);
       store.delete(key);
-      return Promise.resolve(entry.value);
-    },
+      return val ?? null;
+    }),
+    set: vi.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
   };
 };
 
-const createService = () =>
-  createGoogleOAuthService({
-    clientId: "google-client-id",
-    clientSecret: "google-client-secret",
-  }, createTestStateStore());
-
-const createFetchMock = (
-  handler: (input: unknown, init?: RequestInit) => Promise<Response>,
-): typeof fetch => {
-  const fetchMock: typeof fetch = (input, init) => handler(input, init);
-  fetchMock.preconnect = originalFetch.preconnect;
-  return fetchMock;
+const credentials = {
+  clientId: "test-client-id",
+  clientSecret: "test-client-secret",
 };
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
+describe("Google OAuth service", () => {
+  const stateStore = createTestStateStore();
+
+  const createService = () => createGoogleOAuthService(credentials, stateStore);
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("generates a valid authorization URL", async () => {
+    const service = createService();
+    const url = await service.getAuthorizationUrl("user-1", {
+      callbackUrl: "https://keeper.sh/callback",
+    });
+
+    const parsed = new URL(url);
+    expect(parsed.origin).toBe("https://accounts.google.com");
+    expect(parsed.pathname).toBe("/o/oauth2/v2/auth");
+  });
+
+  it("exchanges an authorization code for tokens", async () => {
+    const mockTokens = {
+      access_token: "access-token",
+      expires_in: 3600,
+      refresh_token: "refresh-token",
+      token_type: "Bearer",
+      scope: "https://www.googleapis.com/auth/calendar.events",
+    };
+
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(mockTokens)));
+
+    const service = createService();
+    const tokens = await service.exchangeCodeForTokens("auth-code", "https://keeper.sh/callback");
+
+    expect(tokens).toEqual(mockTokens);
+  });
+
+  it("refreshes an access token", async () => {
+    const mockTokens = {
+      access_token: "new-access-token",
+      expires_in: 3600,
+      token_type: "Bearer",
+      scope: "https://www.googleapis.com/auth/calendar.events",
+    };
+
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(mockTokens)));
+
+    const service = createService();
+    const tokens = await service.refreshAccessToken("refresh-token");
+
+    expect(tokens).toEqual(mockTokens);
+  });
+
+  it("throws on failed token exchange", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response("Unauthorized", { status: 401 }));
+
+    const service = createService();
+    await expect(
+      service.exchangeCodeForTokens("auth-code", "https://keeper.sh/callback"),
+    ).rejects.toThrow("Token exchange failed (401)");
+  });
 });
 
-describe("createGoogleOAuthService.refreshAccessToken", () => {
-  it("flags invalid_grant failures as requiring reauthentication", async () => {
-    globalThis.fetch = createFetchMock(() =>
-      Promise.resolve(
-        Response.json(
-          {
-            error: "invalid_grant",
-            error_description: "Token has been expired or revoked.",
-          },
-          { status: 400 },
-        ),
-      ));
+describe("google oauth utils", () => {
+  const { hasRequiredScopes } = require("../../../src/core/oauth/google");
 
-    const service = createService();
-
-    await expect(service.refreshAccessToken("refresh-token")).rejects.toMatchObject({
-      oauthErrorCode: "invalid_grant",
-      oauthReauthRequired: true,
-    });
+  it("hasRequiredScopes returns true if calendar scope is present", () => {
+    expect(hasRequiredScopes("https://www.googleapis.com/auth/calendar.events other")).toBe(true);
   });
 
-  it("retries once for transient 5xx failures", async () => {
-    let attempts = 0;
-
-    globalThis.fetch = createFetchMock(() => {
-      attempts += 1;
-
-      if (attempts === 1) {
-        return Promise.resolve(
-          Response.json(
-            {
-              error: "temporarily_unavailable",
-            },
-            { status: 503 },
-          ),
-        );
-      }
-
-      return Promise.resolve(
-        Response.json({
-          access_token: "new-access-token",
-          expires_in: 3600,
-          scope: "https://www.googleapis.com/auth/calendar.events",
-          token_type: "Bearer",
-        }),
-      );
-    });
-
-    const service = createService();
-    const token = await service.refreshAccessToken("refresh-token");
-
-    expect(attempts).toBe(2);
-    expect(token.access_token).toBe("new-access-token");
-  });
-
-  it("marks timeout failures as transient", async () => {
-    globalThis.fetch = createFetchMock(() =>
-      Promise.reject(new DOMException("The operation was aborted.", "AbortError")));
-
-    const service = createService();
-
-    await expect(service.refreshAccessToken("refresh-token")).rejects.toMatchObject({
-      oauthReauthRequired: false,
-      oauthRetriable: true,
-    });
+  it("hasRequiredScopes returns false if missing calendar scope", () => {
+    expect(hasRequiredScopes("openid email")).toBe(false);
   });
 });

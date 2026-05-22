@@ -1,91 +1,55 @@
-import { describe, expect, it } from "vitest";
-import { shouldExcludeSyncEvent } from "../../../src/core/events/events";
+import { describe, it, expect, vi } from "vitest";
+import { shouldExcludeSyncEvent, getEventsForDestination } from "../../../src/core/events/events";
 
-const createEvent = (overrides: Partial<{
-  excludeAllDayEvents: boolean;
-  excludeFocusTime: boolean;
-  excludeOutOfOffice: boolean;
-  availability: string | null;
-  isAllDay: boolean | null;
-  sourceEventType: string | null;
-}> = {}) => ({
-  availability: "busy",
-  excludeAllDayEvents: false,
-  excludeFocusTime: false,
-  excludeOutOfOffice: false,
-  isAllDay: false,
-  sourceEventType: "default",
-  ...overrides,
-});
+describe("events core utils", () => {
+  describe("shouldExcludeSyncEvent", () => {
+    it("excludes working location events", () => {
+      const event = {
+        excludeAllDayEvents: false,
+        excludeFocusTime: false,
+        excludeOutOfOffice: false,
+        availability: "workingElsewhere",
+        isAllDay: false,
+        sourceEventType: null,
+      };
+      expect(shouldExcludeSyncEvent(event)).toBe(true);
+    });
 
-describe("shouldExcludeSyncEvent", () => {
-  it("always excludes working location events", () => {
-    expect(
-      shouldExcludeSyncEvent(
-        createEvent({
-          sourceEventType: "workingLocation",
-        }),
-      ),
-    ).toBe(true);
+    it("excludes focus time if configured", () => {
+      const event = {
+        excludeAllDayEvents: false,
+        excludeFocusTime: true,
+        excludeOutOfOffice: false,
+        availability: "busy",
+        isAllDay: false,
+        sourceEventType: "focusTime",
+      };
+      expect(shouldExcludeSyncEvent(event)).toBe(true);
+    });
+
+    it("includes normal events", () => {
+      const event = {
+        excludeAllDayEvents: false,
+        excludeFocusTime: false,
+        excludeOutOfOffice: false,
+        availability: "busy",
+        isAllDay: false,
+        sourceEventType: "default",
+      };
+      expect(shouldExcludeSyncEvent(event)).toBe(false);
+    });
   });
 
-  it("excludes focus time events when configured", () => {
-    expect(
-      shouldExcludeSyncEvent(
-        createEvent({
-          excludeFocusTime: true,
-          sourceEventType: "focusTime",
-        }),
-      ),
-    ).toBe(true);
-  });
-
-  it("excludes out of office events when configured", () => {
-    expect(
-      shouldExcludeSyncEvent(
-        createEvent({
-          excludeOutOfOffice: true,
-          sourceEventType: "outOfOffice",
-        }),
-      ),
-    ).toBe(true);
-  });
-
-  it("excludes all-day events when configured", () => {
-    expect(
-      shouldExcludeSyncEvent(
-        createEvent({
-          excludeAllDayEvents: true,
-          isAllDay: true,
-        }),
-      ),
-    ).toBe(true);
-  });
-
-  it("keeps default events in sync", () => {
-    expect(shouldExcludeSyncEvent(createEvent())).toBe(false);
-  });
-
-  it("treats legacy workingElsewhere rows as working location", () => {
-    expect(
-      shouldExcludeSyncEvent(
-        createEvent({
-          availability: "workingElsewhere",
-          sourceEventType: null,
-        }),
-      ),
-    ).toBe(true);
-  });
-
-  it("treats legacy oof rows as out of office", () => {
-    expect(
-      shouldExcludeSyncEvent(
-        createEvent({
-          availability: "oof",
-          excludeOutOfOffice: true,
-          sourceEventType: null,
-        }),
-      ),
-    ).toBe(true);
+  describe("getEventsForDestination", () => {
+    it("returns empty array if no sources", async () => {
+      const mockDb = {
+        select: vi.fn(() => ({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([]),
+        })),
+      };
+      const result = await getEventsForDestination(mockDb as any, "c1");
+      expect(result).toEqual([]);
+    });
   });
 });

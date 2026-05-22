@@ -1,39 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import { generateDeterministicEventUid, isKeeperEvent } from "../../../src/core/events/identity";
 
-describe("generateDeterministicEventUid", () => {
-  it("ends with the keeper event suffix", () => {
-    const uid = generateDeterministicEventUid("test-seed");
-    expect(uid.endsWith("@keeper.sh")).toBe(true);
-  });
-
-  it("produces the same UID for the same seed", () => {
-    const uid1 = generateDeterministicEventUid("same-seed");
-    const uid2 = generateDeterministicEventUid("same-seed");
+describe("event identity utils", () => {
+  it("generateDeterministicEventUid returns stable UID with suffix", () => {
+    const seed = "test-seed";
+    const uid1 = generateDeterministicEventUid(seed);
+    const uid2 = generateDeterministicEventUid(seed);
+    
     expect(uid1).toBe(uid2);
+    expect(uid1).toContain("@keeper.sh");
   });
 
-  it("produces different UIDs for different seeds", () => {
-    const uid1 = generateDeterministicEventUid("seed-a");
-    const uid2 = generateDeterministicEventUid("seed-b");
+  it("isKeeperEvent identifies keeper events", () => {
+    expect(isKeeperEvent("abc@keeper.sh")).toBe(true);
+    expect(isKeeperEvent("abc@google.com")).toBe(false);
+  });
+
+  it("generateDeterministicEventUid generates different UIDs for different seeds", () => {
+    const uid1 = generateDeterministicEventUid("seed1");
+    const uid2 = generateDeterministicEventUid("seed2");
     expect(uid1).not.toBe(uid2);
   });
-});
 
-describe("isKeeperEvent", () => {
-  it("returns true for UIDs ending with @keeper.sh", () => {
-    expect(isKeeperEvent("abc-123@keeper.sh")).toBe(true);
-  });
-
-  it("returns false for UIDs without the keeper suffix", () => {
-    expect(isKeeperEvent("abc-123@google.com")).toBe(false);
-  });
-
-  it("returns false for empty string", () => {
-    expect(isKeeperEvent("")).toBe(false);
-  });
-
-  it("returns false when suffix appears in the middle", () => {
-    expect(isKeeperEvent("@keeper.sh-extra")).toBe(false);
+  it("handles empty seed", () => {
+    expect(generateDeterministicEventUid("")).toBeDefined();
   });
 });

@@ -14,6 +14,14 @@ describe("Zoho errors shared", () => {
     it("returns false for 400", () => {
       expect(isAuthError(400, { code: "BAD_REQUEST", message: "Error" })).toBe(false);
     });
+
+    it("returns true for 403 without code", () => {
+      expect(isAuthError(403, undefined)).toBe(true);
+    });
+
+    it("handles numeric codes", () => {
+      expect(isAuthError(400, { code: 123, message: "Error" } as any)).toBe(false);
+    });
   });
 
   describe("hasRateLimitMessage", () => {

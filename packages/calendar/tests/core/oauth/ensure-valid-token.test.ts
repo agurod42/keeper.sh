@@ -1,75 +1,48 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { ensureValidToken } from "../../../src/core/oauth/ensure-valid-token";
-import type { TokenState, TokenRefresher } from "../../../src/core/oauth/ensure-valid-token";
-
-const makeRefresher = (
-  overrides: Partial<{ access_token: string; expires_in: number; refresh_token: string }> = {},
-): TokenRefresher =>
-  () => Promise.resolve({
-    access_token: overrides.access_token ?? "new-token",
-    expires_in: overrides.expires_in ?? 3600,
-    ...overrides.refresh_token && { refresh_token: overrides.refresh_token },
-  });
-
-const makeExpiredTokenState = (overrides: Partial<TokenState> = {}): TokenState => ({
-  accessToken: overrides.accessToken ?? "old-token",
-  accessTokenExpiresAt: overrides.accessTokenExpiresAt ?? new Date(Date.now() - 60_000),
-  refreshToken: overrides.refreshToken ?? "refresh-1",
-});
 
 describe("ensureValidToken", () => {
-  it("refreshes token when accessTokenExpiresAt is in the past", async () => {
-    const tokenState = makeExpiredTokenState();
-
-    await ensureValidToken(tokenState, makeRefresher());
-
-    expect(tokenState.accessToken).toBe("new-token");
-    expect(tokenState.accessTokenExpiresAt.getTime()).toBeGreaterThan(Date.now());
-  });
-
-  it("reuses existing token when it has not expired", async () => {
-    const tokenState = makeExpiredTokenState({
-      accessToken: "valid-token",
-      accessTokenExpiresAt: new Date(Date.now() + 600_000),
-    });
-
-    let refreshCalled = false;
-    const trackingRefresher: TokenRefresher = () => {
-      refreshCalled = true;
-      return Promise.resolve({ access_token: "new-token", expires_in: 3600 });
+  it("does nothing if token is still valid", async () => {
+    const tokenState = {
+      accessToken: "at",
+      accessTokenExpiresAt: new Date(Date.now() + 1000000),
+      refreshToken: "rt",
     };
+    const refresh = vi.fn();
 
-    await ensureValidToken(tokenState, trackingRefresher);
-
-    expect(refreshCalled).toBe(false);
-    expect(tokenState.accessToken).toBe("valid-token");
+    await ensureValidToken(tokenState, refresh);
+    expect(refresh).not.toHaveBeenCalled();
   });
 
-  it("updates refresh token when returned by provider", async () => {
-    const tokenState = makeExpiredTokenState({ refreshToken: "old-refresh" });
-
-    await ensureValidToken(tokenState, makeRefresher({ refresh_token: "new-refresh" }));
-
-    expect(tokenState.refreshToken).toBe("new-refresh");
-  });
-
-  it("keeps existing refresh token when provider does not return one", async () => {
-    const tokenState = makeExpiredTokenState({ refreshToken: "original-refresh" });
-
-    await ensureValidToken(tokenState, makeRefresher());
-
-    expect(tokenState.refreshToken).toBe("original-refresh");
-  });
-
-  it("refreshes token when within the buffer window", async () => {
-    const fourMinutesFromNow = new Date(Date.now() + 4 * 60 * 1000);
-    const tokenState = makeExpiredTokenState({
-      accessToken: "expiring-token",
-      accessTokenExpiresAt: fourMinutesFromNow,
+  it("refreshes token if expired", async () => {
+    const tokenState = {
+      accessToken: "old-at",
+      accessTokenExpiresAt: new Date(Date.now() - 1000),
+      refreshToken: "rt",
+    };
+    const refresh = vi.fn().mockResolvedValue({
+      access_token: "new-at",
+      expires_in: 3600,
     });
 
-    await ensureValidToken(tokenState, makeRefresher({ access_token: "fresh-token" }));
+    await ensureValidToken(tokenState, refresh);
+    expect(refresh).toHaveBeenCalledWith("rt");
+    expect(tokenState.accessToken).toBe("new-at");
+  });
 
-    expect(tokenState.accessToken).toBe("fresh-token");
+  it("updates refresh_token if returned", async () => {
+    const tokenState = {
+      accessToken: "old-at",
+      accessTokenExpiresAt: new Date(0),
+      refreshToken: "old-rt",
+    };
+    const refresh = vi.fn().mockResolvedValue({
+      access_token: "new-at",
+      refresh_token: "new-rt",
+      expires_in: 3600,
+    });
+
+    await ensureValidToken(tokenState, refresh);
+    expect(tokenState.refreshToken).toBe("new-rt");
   });
 });

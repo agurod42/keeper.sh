@@ -18,6 +18,18 @@ describe("Zoho date-time utils", () => {
       expect(date.getUTCDate()).toBe(1);
       expect(date.getUTCHours()).toBe(0);
     });
+
+    it("parses offset format YYYYMMDDTHHMMSS+0530", () => {
+      const date = parseZohoBasicDateTime("20260101T100000+0530");
+      // 10:00 - 5:30 = 04:30 UTC
+      expect(date.getUTCHours()).toBe(4);
+      expect(date.getUTCMinutes()).toBe(30);
+    });
+
+    it("falls back to Date constructor for other formats", () => {
+      const date = parseZohoBasicDateTime("2026-05-20T10:00:00Z");
+      expect(date.getUTCHours()).toBe(10);
+    });
   });
 
   describe("formatZohoBasicDateTime", () => {

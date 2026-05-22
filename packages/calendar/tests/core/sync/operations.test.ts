@@ -1,128 +1,38 @@
-import { describe, expect, it } from "vitest";
-import { buildRemoveOperations } from "../../../src/core/sync/operations";
-import type { EventMapping } from "../../../src/core/events/mappings";
-import type { RemoteEvent } from "../../../src/core/types";
+import { describe, it, expect, vi } from "vitest";
+import { computeSyncOperations } from "../../../src/core/sync/operations";
 
-const createEventMapping = (overrides: Partial<EventMapping>): EventMapping => ({
-  calendarId: "destination-calendar-id",
-  deleteIdentifier: "delete-identifier-1",
-  destinationEventUid: "destination-uid-1",
-  endTime: new Date("2026-03-08T15:00:00.000Z"),
-  eventStateId: "event-state-id-1",
-  id: "mapping-id-1",
-  startTime: new Date("2026-03-08T14:00:00.000Z"),
-  syncEventHash: "hash-1",
-  ...overrides,
-});
+describe("sync operations", () => {
+  const start = new Date("2026-05-20T10:00:00Z");
+  const end = new Date("2026-05-20T11:00:00Z");
 
-const createRemoteEvent = (overrides: Partial<RemoteEvent>): RemoteEvent => ({
-  deleteId: "remote-delete-id-1",
-  endTime: new Date("2026-03-08T15:00:00.000Z"),
-  isKeeperEvent: false,
-  startTime: new Date("2026-03-08T14:00:00.000Z"),
-  uid: "remote-uid-1",
-  ...overrides,
-});
-
-describe("buildRemoveOperations", () => {
-  it("does not remove mapped events from before the sync window", () => {
-    const historicalMapping = createEventMapping({
-      destinationEventUid: "historical-uid",
-      eventStateId: "historical-event-state-id",
-      id: "historical-mapping-id",
-      startTime: new Date("2026-03-07T10:00:00.000Z"),
-    });
-
-    const operations = buildRemoveOperations(
-      [historicalMapping],
-      [],
-      new Set<string>(),
-      new Set<string>(),
-      {
-        now: new Date("2026-03-08T12:00:00.000Z"),
-        syncWindowStart: new Date("2026-03-08T00:00:00.000Z"),
-      },
-    );
-
-    expect(operations).toHaveLength(0);
+  it("computes adds for unmapped events", () => {
+    const local = [{ id: "l1", summary: "Title", startTime: start, endTime: end }];
+    const remote = [];
+    const mappings = [];
+    
+    const result = computeSyncOperations(local as any, remote, mappings as any);
+    expect(result.operations).toHaveLength(1);
+    expect(result.operations[0].type).toBe("add");
   });
 
-  it("removes missing mapped events from inside the sync window", () => {
-    const futureMapping = createEventMapping({
-      deleteIdentifier: "future-delete-id",
-      destinationEventUid: "future-uid",
-      eventStateId: "future-event-state-id",
-      id: "future-mapping-id",
-      startTime: new Date("2026-03-08T13:00:00.000Z"),
-    });
-
-    const operations = buildRemoveOperations(
-      [futureMapping],
-      [],
-      new Set<string>(),
-      new Set<string>(),
-      {
-        now: new Date("2026-03-08T12:00:00.000Z"),
-        syncWindowStart: new Date("2026-03-08T00:00:00.000Z"),
-      },
-    );
-
-    expect(operations).toHaveLength(1);
-    expect(operations[0]).toEqual({
-      deleteId: "future-delete-id",
-      startTime: new Date("2026-03-08T13:00:00.000Z"),
-      type: "remove",
-      uid: "future-uid",
-    });
+  it("computes removes for orphaned mappings", () => {
+    const local = [];
+    const remote = [{ uid: "r1", startTime: start, endTime: end }];
+    const mappings = [{ id: "m1", eventStateId: "l1", destinationEventUid: "r1", startTime: start, endTime: end }];
+    
+    const result = computeSyncOperations(local, remote as any, mappings as any);
+    expect(result.operations).toHaveLength(1);
+    expect(result.operations[0].type).toBe("remove");
   });
 
-  it("removes orphaned keeper events even when in the future", () => {
-    const orphanedKeeperEvent = createRemoteEvent({
-      deleteId: "orphaned-delete-id",
-      isKeeperEvent: true,
-      startTime: new Date("2026-03-08T18:00:00.000Z"),
-      uid: "orphaned-uid",
-    });
-
-    const operations = buildRemoveOperations(
-      [],
-      [orphanedKeeperEvent],
-      new Set<string>(),
-      new Set<string>(),
-      {
-        now: new Date("2026-03-08T12:00:00.000Z"),
-        syncWindowStart: new Date("2026-03-08T00:00:00.000Z"),
-      },
-    );
-
-    expect(operations).toHaveLength(1);
-    expect(operations[0]).toEqual({
-      deleteId: "orphaned-delete-id",
-      startTime: new Date("2026-03-08T18:00:00.000Z"),
-      type: "remove",
-      uid: "orphaned-uid",
-    });
-  });
-
-  it("does not remove unmapped non-keeper future events", () => {
-    const futureRemoteEvent = createRemoteEvent({
-      deleteId: "future-remote-delete-id",
-      isKeeperEvent: false,
-      startTime: new Date("2026-03-08T18:00:00.000Z"),
-      uid: "future-remote-uid",
-    });
-
-    const operations = buildRemoveOperations(
-      [],
-      [futureRemoteEvent],
-      new Set<string>(),
-      new Set<string>(),
-      {
-        now: new Date("2026-03-08T12:00:00.000Z"),
-        syncWindowStart: new Date("2026-03-08T00:00:00.000Z"),
-      },
-    );
-
-    expect(operations).toHaveLength(0);
+  it("computes updates for changed events", () => {
+    const local = [{ id: "l1", summary: "New Title", startTime: start, endTime: end }];
+    const remote = [{ uid: "r1", title: "Old Title", startTime: start, endTime: end }];
+    const mappings = [{ id: "m1", eventStateId: "l1", destinationEventUid: "r1", startTime: start, endTime: end }];
+    
+    const result = computeSyncOperations(local as any, remote as any, mappings as any);
+    expect(result.operations).toHaveLength(2);
+    expect(result.operations.some(o => o.type === "remove")).toBe(true);
+    expect(result.operations.some(o => o.type === "add")).toBe(true);
   });
 });

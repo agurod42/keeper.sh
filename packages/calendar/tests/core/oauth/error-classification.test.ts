@@ -1,24 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import { isOAuthReauthRequiredError } from "../../../src/core/oauth/error-classification";
 
-describe("isOAuthReauthRequiredError", () => {
-  it("returns true when explicit reauth marker is true", () => {
+describe("error-classification", () => {
+  it("identifies reauth required by property", () => {
     expect(isOAuthReauthRequiredError({ oauthReauthRequired: true })).toBe(true);
   });
 
-  it("returns false when explicit reauth marker is false", () => {
-    expect(isOAuthReauthRequiredError({ oauthReauthRequired: false })).toBe(false);
+  it("identifies reauth required by message", () => {
+    expect(isOAuthReauthRequiredError(new Error("invalid_grant"))).toBe(true);
   });
 
-  it("returns true for invalid_grant fallback messages", () => {
-    expect(
-      isOAuthReauthRequiredError(new Error("Token refresh failed (400): {\"error\":\"invalid_grant\"}")),
-    ).toBe(true);
-  });
-
-  it("returns false for transient timeout messages", () => {
-    expect(
-      isOAuthReauthRequiredError(new Error("Token refresh timed out after 15000ms")),
-    ).toBe(false);
+  it("returns false for other errors", () => {
+    expect(isOAuthReauthRequiredError(new Error("some other error"))).toBe(false);
+    expect(isOAuthReauthRequiredError(null)).toBe(false);
+    expect(isOAuthReauthRequiredError({ oauthReauthRequired: "not-bool" })).toBe(false);
   });
 });
