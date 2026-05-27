@@ -98,6 +98,36 @@ describe("MCP toolset execution", () => {
         expect.objectContaining({ method: "POST" })
       );
     });
+
+    it("forwards the timezone in the POST body", async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: "e1",
+          startTime: "2026-06-17T10:45:00Z",
+          endTime: "2026-06-17T11:45:00Z",
+          title: "Appt",
+          description: null,
+          location: null,
+          calendarId: "c1",
+          calendarName: "Cal",
+          calendarProvider: "icloud",
+          calendarUrl: null,
+        }),
+      });
+
+      const input = {
+        calendarId: "c1",
+        title: "Appt",
+        startTime: "2026-06-17T10:45:00Z",
+        endTime: "2026-06-17T11:45:00Z",
+        timezone: "America/Montevideo",
+      };
+      await toolset.create_event.execute(mockContext, input);
+
+      const body = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      expect(body.timezone).toBe("America/Montevideo");
+    });
   });
 
   describe("delete_event", () => {
@@ -161,6 +191,35 @@ describe("MCP toolset execution", () => {
         "http://api/api/v1/events/e1",
         expect.objectContaining({ method: "PATCH" })
       );
+    });
+
+    it("forwards the timezone in the PATCH body and omits eventId", async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: "e1",
+          startTime: "2026-06-17T10:45:00Z",
+          endTime: "2026-06-17T11:45:00Z",
+          title: "Updated",
+          description: null,
+          location: null,
+          calendarId: "c1",
+          calendarName: "Cal",
+          calendarProvider: "icloud",
+          calendarUrl: null,
+        }),
+      });
+
+      const input = {
+        eventId: "e1",
+        startTime: "2026-06-17T10:45:00Z",
+        timezone: "America/Montevideo",
+      };
+      await toolset.update_event.execute(mockContext, input);
+
+      const body = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      expect(body.timezone).toBe("America/Montevideo");
+      expect(body.eventId).toBeUndefined();
     });
   });
 
