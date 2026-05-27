@@ -30,6 +30,26 @@ interface CalendarEvent {
   sourceEventUid: string | null;
 }
 
+// The feed emits DTSTART/DTEND as bare UTC ("...Z"). Per RFC 5545, EXDATE and
+// RRULE UNTIL must use the same value type as DTSTART, so they must be UTC too.
+// Source-parsed dates can carry a TZID (the `local` block); strict clients like
+// Apple Calendar drop the whole recurring event when EXDATE has an IANA TZID but
+// DTSTART is UTC. Strip `local` so these serialize as UTC, preserving the instant.
+// All-day exceptions (VALUE=DATE) keep their date-only type.
+const toUtcDateObject = (value: IcsDateObject): IcsDateObject => {
+  if (value.type === "DATE") {
+    return { date: value.date, type: "DATE" };
+  }
+  return { date: value.date };
+};
+
+const normalizeRecurrenceRuleToUtc = (rule: IcsRecurrenceRule): IcsRecurrenceRule => {
+  if (!rule.until) {
+    return rule;
+  }
+  return { ...rule, until: toUtcDateObject(rule.until) };
+};
+
 const toAllDayShape = (event: CalendarEvent) => ({
   startTime: event.startTime,
   endTime: event.endTime,
@@ -173,10 +193,10 @@ const formatEventsAsIcal = (events: CalendarEvent[], settings: FeedSettings): st
         ics.recurrenceId = { value: { date: event.recurrenceId } };
       }
       if (event.recurrenceRule && !event.recurrenceId) {
-        ics.recurrenceRule = event.recurrenceRule;
+        ics.recurrenceRule = normalizeRecurrenceRuleToUtc(event.recurrenceRule);
       }
       if (event.exceptionDates && event.exceptionDates.length > 0 && !event.recurrenceId) {
-        ics.exceptionDates = event.exceptionDates;
+        ics.exceptionDates = event.exceptionDates.map(toUtcDateObject);
       }
       icsEvents.push(ics);
     }
