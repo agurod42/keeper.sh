@@ -234,6 +234,26 @@ describe("calendar source metadata", () => {
       expect(ics).toMatch(/BYDAY=MO,TU,WE,TH,FR|BYDAY=MO;BYDAY=TU/);
     });
 
+    // Regression: ts-ics 2.4.0 emitted BY* rule parts before FREQ
+    // (e.g. RRULE:BYDAY=WE;FREQ=WEEKLY). RFC 5545 §3.3.10 requires FREQ first,
+    // and Apple Calendar silently fails to expand a non-conformant RRULE — the
+    // recurring event then shows only at its master DTSTART and disappears from
+    // current views. Pinning ts-ics >=2.4.3 emits FREQ first.
+    it("emits RRULE with FREQ as the first rule part (RFC 5545)", () => {
+      const ics = formatEventsAsIcal(
+        [makeEvent({
+          isAllDay: false,
+          startTime: new Date("2025-09-24T23:00:00Z"),
+          endTime: new Date("2025-09-25T02:00:00Z"),
+          recurrenceRule: { frequency: "WEEKLY", byDay: [{ day: "WE" }] } as never,
+        })],
+        DEFAULT_SETTINGS,
+      );
+      const rrule = ics.split(/\r?\n/).find((line) => line.startsWith("RRULE"));
+      expect(rrule).toBeDefined();
+      expect(rrule).toMatch(/^RRULE:FREQ=/);
+    });
+
     it("emits EXDATE for events with exceptionDates", () => {
       const ics = formatEventsAsIcal(
         [makeEvent({
