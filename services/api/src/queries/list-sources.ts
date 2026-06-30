@@ -6,6 +6,14 @@ import { asc, eq } from "drizzle-orm";
 import { withAccountDisplay } from "@/provider-display";
 import type { KeeperDatabase, KeeperSource } from "@/types";
 
+const toIsoString = (value: Date | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  return value.toISOString();
+};
+
 const listSources = async (database: KeeperDatabase, userId: string): Promise<KeeperSource[]> => {
   const calendars = await database
     .select({
@@ -20,13 +28,21 @@ const listSources = async (database: KeeperDatabase, userId: string): Promise<Ke
       accountIdentifier: calendarAccountsTable.accountId,
       needsReauthentication: calendarAccountsTable.needsReauthentication,
       includeInIcalFeed: calendarsTable.includeInIcalFeed,
+      color: calendarsTable.color,
+      disabled: calendarsTable.disabled,
+      failureCount: calendarsTable.failureCount,
+      lastFailureAt: calendarsTable.lastFailureAt,
     })
     .from(calendarsTable)
     .innerJoin(calendarAccountsTable, eq(calendarsTable.accountId, calendarAccountsTable.id))
     .where(eq(calendarsTable.userId, userId))
     .orderBy(asc(calendarsTable.createdAt));
 
-  return calendars.map((calendar) => withAccountDisplay(calendar));
+  return calendars.map(({ lastFailureAt, ...calendar }) =>
+    withAccountDisplay({
+      ...calendar,
+      lastFailureAt: toIsoString(lastFailureAt),
+    }));
 };
 
 export { listSources };

@@ -65,7 +65,18 @@ const tokenCreateBodySchema = type({
 });
 type TokenCreateBody = typeof tokenCreateBodySchema.infer;
 
+const bookingCreateBodySchema = type({
+  slotStart: "string",
+  guestName: "string > 0",
+  guestEmail: "string.email",
+  "guestNotes?": "string",
+  guestTimezone: "string > 0",
+  "+": "reject",
+});
+type BookingCreateBody = typeof bookingCreateBodySchema.infer;
+
 export {
+  bookingCreateBodySchema,
   calendarIdsBodySchema,
   sourcePatchBodySchema,
   icalSettingsPatchBodySchema,
@@ -74,6 +85,7 @@ export {
   tokenCreateBodySchema,
 };
 export type {
+  BookingCreateBody,
   CalendarIdsBody,
   SourcePatchBody,
   IcalSettingsPatchBody,

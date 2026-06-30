@@ -4,6 +4,7 @@ import {
   bookingsTable,
   eventTypesTable,
 } from "@keeper.sh/database/schema";
+import { user as userTable } from "@keeper.sh/database/auth-schema";
 import { and, eq, gte, lt } from "drizzle-orm";
 
 import type { AvailabilityRule, BusyInterval } from "@/utils/booking-slots";
@@ -127,10 +128,81 @@ const getConfirmedBookingIntervals = async (
   return rows;
 };
 
+interface HostContact {
+  name: string;
+  email: string;
+}
+
+const getHostContact = async (
+  database: KeeperDatabase,
+  userId: string,
+): Promise<HostContact | null> => {
+  const [row] = await database
+    .select({ name: userTable.name, email: userTable.email })
+    .from(userTable)
+    .where(eq(userTable.id, userId))
+    .limit(1);
+
+  return row ?? null;
+};
+
+interface CancelableBooking {
+  bookingId: string;
+  status: string;
+  userEventId: string;
+  guestName: string;
+  guestEmail: string;
+  guestTimezone: string;
+  startTime: Date;
+  endTime: Date;
+  cancelToken: string;
+  eventTitle: string;
+  eventTimezone: string;
+  hostUserId: string;
+  hostName: string;
+  hostEmail: string;
+  hostDisplayName: string;
+}
+
+/** Resolve a public cancel token to the full booking plus host/event context. */
+const resolveBookingByCancelToken = async (
+  database: KeeperDatabase,
+  token: string,
+): Promise<CancelableBooking | null> => {
+  const [row] = await database
+    .select({
+      bookingId: bookingsTable.id,
+      status: bookingsTable.status,
+      userEventId: bookingsTable.userEventId,
+      guestName: bookingsTable.guestName,
+      guestEmail: bookingsTable.guestEmail,
+      guestTimezone: bookingsTable.guestTimezone,
+      startTime: bookingsTable.startTime,
+      endTime: bookingsTable.endTime,
+      cancelToken: bookingsTable.cancelToken,
+      eventTitle: eventTypesTable.title,
+      eventTimezone: eventTypesTable.timezone,
+      hostUserId: eventTypesTable.userId,
+      hostName: userTable.name,
+      hostEmail: userTable.email,
+      hostDisplayName: bookingProfilesTable.displayName,
+    })
+    .from(bookingsTable)
+    .innerJoin(eventTypesTable, eq(bookingsTable.eventTypeId, eventTypesTable.id))
+    .innerJoin(userTable, eq(eventTypesTable.userId, userTable.id))
+    .innerJoin(bookingProfilesTable, eq(bookingProfilesTable.userId, eventTypesTable.userId))
+    .where(eq(bookingsTable.cancelToken, token))
+    .limit(1);
+
+  return row ?? null;
+};
+
 export {
   CONFIRMED_STATUS,
   getAvailabilityRules,
   getConfirmedBookingIntervals,
+  getHostContact,
+  resolveBookingByCancelToken,
   resolveBookingTarget,
 };
-export type { ResolvedBookingTarget, ResolvedEventType };
+export type { CancelableBooking, HostContact, ResolvedBookingTarget, ResolvedEventType };

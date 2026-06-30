@@ -28,6 +28,10 @@ export interface CalendarSource {
   accountIdentifier: string | null;
   needsReauthentication: boolean;
   includeInIcalFeed: boolean;
+  color: string | null;
+  disabled: boolean;
+  failureCount: number;
+  lastFailureAt: string | null;
 }
 
 export interface CalendarDetail {
@@ -52,6 +56,14 @@ export interface CalendarDetail {
   sourceIds: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ApiMapping {
+  id: string;
+  sourceCalendarId: string;
+  destinationCalendarId: string;
+  calendarType: string;
+  createdAt: string;
 }
 
 export interface ApiEvent {

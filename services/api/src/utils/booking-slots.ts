@@ -124,6 +124,14 @@ const dayRangeInTimeZone = (
   };
 };
 
+const padTwo = (value: number): string => value.toString().padStart(2, "0");
+
+/** The `YYYY-MM-DD` calendar date an instant falls on, in `timeZone`. */
+const formatDateInTimeZone = (instant: Date, timeZone: string): string => {
+  const parts = partsInTimeZone(instant, timeZone);
+  return `${parts.year}-${padTwo(parts.month)}-${padTwo(parts.day)}`;
+};
+
 /** Day of week (0=Sunday … 6=Saturday) for a `YYYY-MM-DD` calendar date. */
 const weekdayForDate = (date: string): number => {
   const { year, month, day } = parseDateParts(date);
@@ -213,6 +221,7 @@ const computeAvailableSlots = (input: SlotComputationInput): Date[] => {
 export {
   computeAvailableSlots,
   dayRangeInTimeZone,
+  formatDateInTimeZone,
   weekdayForDate,
   zonedWallTimeToUtc,
 };

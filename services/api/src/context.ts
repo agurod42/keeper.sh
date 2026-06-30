@@ -147,6 +147,8 @@ const feedbackEmail = env.FEEDBACK_EMAIL ?? null;
 
 const baseUrl = env.BETTER_AUTH_URL;
 const encryptionKey = env.ENCRYPTION_KEY;
+const bookingPublicUrl = env.BOOKING_PUBLIC_URL ?? env.BETTER_AUTH_URL;
+const bookingFromEmail = env.BOOKING_FROM_EMAIL ?? null;
 
 export {
   database,
@@ -162,6 +164,8 @@ export {
   resend,
   feedbackEmail,
   baseUrl,
+  bookingFromEmail,
+  bookingPublicUrl,
   encryptionKey,
   getCurrentSyncAggregate,
   getCachedSyncAggregate,
