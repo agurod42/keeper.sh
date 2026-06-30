@@ -32,6 +32,7 @@ import { Route as oauthAuthOutlookRouteImport } from './../../routes/(oauth)/aut
 import { Route as oauthAuthGoogleRouteImport } from './../../routes/(oauth)/auth/google'
 import { Route as marketingBlogSlugRouteImport } from './../../routes/(marketing)/blog/$slug'
 import { Route as dashboardDashboardReportRouteImport } from './../../routes/(dashboard)/dashboard/report'
+import { Route as dashboardDashboardMapRouteImport } from './../../routes/(dashboard)/dashboard/map'
 import { Route as dashboardDashboardIcalRouteImport } from './../../routes/(dashboard)/dashboard/ical'
 import { Route as dashboardDashboardFeedbackRouteImport } from './../../routes/(dashboard)/dashboard/feedback'
 import { Route as oauthDashboardConnectRouteRouteImport } from './../../routes/(oauth)/dashboard/connect/route'
@@ -172,6 +173,11 @@ const dashboardDashboardReportRoute =
     path: '/dashboard/report',
     getParentRoute: () => dashboardRouteRoute,
   } as any)
+const dashboardDashboardMapRoute = dashboardDashboardMapRouteImport.update({
+  id: '/dashboard/map',
+  path: '/dashboard/map',
+  getParentRoute: () => dashboardRouteRoute,
+} as any)
 const dashboardDashboardIcalRoute = dashboardDashboardIcalRouteImport.update({
   id: '/dashboard/ical',
   path: '/dashboard/ical',
@@ -346,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof dashboardDashboardSettingsRouteRouteWithChildren
   '/dashboard/feedback': typeof dashboardDashboardFeedbackRoute
   '/dashboard/ical': typeof dashboardDashboardIcalRoute
+  '/dashboard/map': typeof dashboardDashboardMapRoute
   '/dashboard/report': typeof dashboardDashboardReportRoute
   '/blog/$slug': typeof marketingBlogSlugRoute
   '/auth/google': typeof oauthAuthGoogleRoute
@@ -390,6 +397,7 @@ export interface FileRoutesByTo {
   '/dashboard/connect': typeof dashboardDashboardConnectIndexRoute
   '/dashboard/feedback': typeof dashboardDashboardFeedbackRoute
   '/dashboard/ical': typeof dashboardDashboardIcalRoute
+  '/dashboard/map': typeof dashboardDashboardMapRoute
   '/dashboard/report': typeof dashboardDashboardReportRoute
   '/blog/$slug': typeof marketingBlogSlugRoute
   '/auth/google': typeof oauthAuthGoogleRoute
@@ -440,6 +448,7 @@ export interface FileRoutesById {
   '/(oauth)/dashboard/connect': typeof oauthDashboardConnectRouteRouteWithChildren
   '/(dashboard)/dashboard/feedback': typeof dashboardDashboardFeedbackRoute
   '/(dashboard)/dashboard/ical': typeof dashboardDashboardIcalRoute
+  '/(dashboard)/dashboard/map': typeof dashboardDashboardMapRoute
   '/(dashboard)/dashboard/report': typeof dashboardDashboardReportRoute
   '/(marketing)/blog/$slug': typeof marketingBlogSlugRoute
   '/(oauth)/auth/google': typeof oauthAuthGoogleRoute
@@ -488,6 +497,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/feedback'
     | '/dashboard/ical'
+    | '/dashboard/map'
     | '/dashboard/report'
     | '/blog/$slug'
     | '/auth/google'
@@ -532,6 +542,7 @@ export interface FileRouteTypes {
     | '/dashboard/connect'
     | '/dashboard/feedback'
     | '/dashboard/ical'
+    | '/dashboard/map'
     | '/dashboard/report'
     | '/blog/$slug'
     | '/auth/google'
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/(oauth)/dashboard/connect'
     | '/(dashboard)/dashboard/feedback'
     | '/(dashboard)/dashboard/ical'
+    | '/(dashboard)/dashboard/map'
     | '/(dashboard)/dashboard/report'
     | '/(marketing)/blog/$slug'
     | '/(oauth)/auth/google'
@@ -778,6 +790,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/report'
       fullPath: '/dashboard/report'
       preLoaderRoute: typeof dashboardDashboardReportRouteImport
+      parentRoute: typeof dashboardRouteRoute
+    }
+    '/(dashboard)/dashboard/map': {
+      id: '/(dashboard)/dashboard/map'
+      path: '/dashboard/map'
+      fullPath: '/dashboard/map'
+      preLoaderRoute: typeof dashboardDashboardMapRouteImport
       parentRoute: typeof dashboardRouteRoute
     }
     '/(dashboard)/dashboard/ical': {
@@ -1051,6 +1070,7 @@ interface dashboardRouteRouteChildren {
   dashboardDashboardSettingsRouteRoute: typeof dashboardDashboardSettingsRouteRouteWithChildren
   dashboardDashboardFeedbackRoute: typeof dashboardDashboardFeedbackRoute
   dashboardDashboardIcalRoute: typeof dashboardDashboardIcalRoute
+  dashboardDashboardMapRoute: typeof dashboardDashboardMapRoute
   dashboardDashboardReportRoute: typeof dashboardDashboardReportRoute
   dashboardDashboardIndexRoute: typeof dashboardDashboardIndexRoute
   dashboardDashboardEventsIndexRoute: typeof dashboardDashboardEventsIndexRoute
@@ -1067,6 +1087,7 @@ const dashboardRouteRouteChildren: dashboardRouteRouteChildren = {
     dashboardDashboardSettingsRouteRouteWithChildren,
   dashboardDashboardFeedbackRoute: dashboardDashboardFeedbackRoute,
   dashboardDashboardIcalRoute: dashboardDashboardIcalRoute,
+  dashboardDashboardMapRoute: dashboardDashboardMapRoute,
   dashboardDashboardReportRoute: dashboardDashboardReportRoute,
   dashboardDashboardIndexRoute: dashboardDashboardIndexRoute,
   dashboardDashboardEventsIndexRoute: dashboardDashboardEventsIndexRoute,
