@@ -96,11 +96,11 @@ function BookingPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
 
-  const metaUrl = `/book/${userSlug}/${eventSlug}`;
+  const metaUrl = `/api/book/${userSlug}/${eventSlug}`;
   const { data: meta, error: metaError } = useSWR<EventTypeMeta>(metaUrl, fetcher);
 
   const slotsUrl = selectedDate
-    ? `/book/${userSlug}/${eventSlug}/slots?date=${selectedDate}&tz=${encodeURIComponent(tz)}`
+    ? `/api/book/${userSlug}/${eventSlug}/slots?date=${selectedDate}&tz=${encodeURIComponent(tz)}`
     : null;
   const { data: slotsData, isLoading: slotsLoading } = useSWR<SlotsResponse>(slotsUrl, fetcher);
 

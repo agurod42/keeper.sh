@@ -60,6 +60,7 @@ import { Route as dashboardDashboardSettingsPasskeysRouteImport } from './../../
 import { Route as dashboardDashboardSettingsChangePasswordRouteImport } from './../../routes/(dashboard)/dashboard/settings/change-password'
 import { Route as dashboardDashboardSettingsApiTokensRouteImport } from './../../routes/(dashboard)/dashboard/settings/api-tokens'
 import { Route as dashboardDashboardBookingEventTypeIdRouteImport } from './../../routes/(dashboard)/dashboard/booking/$eventTypeId'
+import { Route as bookingBookCancelTokenRouteImport } from './../../routes/(booking)/book.cancel.$token'
 import { Route as dashboardDashboardAccountsAccountIdIndexRouteImport } from './../../routes/(dashboard)/dashboard/accounts/$accountId.index'
 import { Route as dashboardDashboardAccountsAccountIdSetupRouteImport } from './../../routes/(dashboard)/dashboard/accounts/$accountId.setup'
 import { Route as dashboardDashboardAccountsAccountIdCalendarIdRouteImport } from './../../routes/(dashboard)/dashboard/accounts/$accountId.$calendarId'
@@ -341,6 +342,11 @@ const dashboardDashboardBookingEventTypeIdRoute =
     path: '/dashboard/booking/$eventTypeId',
     getParentRoute: () => dashboardRouteRoute,
   } as any)
+const bookingBookCancelTokenRoute = bookingBookCancelTokenRouteImport.update({
+  id: '/book/cancel/$token',
+  path: '/book/cancel/$token',
+  getParentRoute: () => bookingRouteRoute,
+} as any)
 const dashboardDashboardAccountsAccountIdIndexRoute =
   dashboardDashboardAccountsAccountIdIndexRouteImport.update({
     id: '/$accountId/',
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/oauth/consent': typeof oauthOauthConsentRoute
   '/dashboard/': typeof dashboardDashboardIndexRoute
   '/blog/': typeof marketingBlogIndexRoute
+  '/book/cancel/$token': typeof bookingBookCancelTokenRoute
   '/dashboard/booking/$eventTypeId': typeof dashboardDashboardBookingEventTypeIdRoute
   '/dashboard/settings/api-tokens': typeof dashboardDashboardSettingsApiTokensRoute
   '/dashboard/settings/change-password': typeof dashboardDashboardSettingsChangePasswordRoute
@@ -434,6 +441,7 @@ export interface FileRoutesByTo {
   '/auth/outlook': typeof oauthAuthOutlookRoute
   '/oauth/consent': typeof oauthOauthConsentRoute
   '/blog': typeof marketingBlogIndexRoute
+  '/book/cancel/$token': typeof bookingBookCancelTokenRoute
   '/dashboard/booking/$eventTypeId': typeof dashboardDashboardBookingEventTypeIdRoute
   '/dashboard/settings/api-tokens': typeof dashboardDashboardSettingsApiTokensRoute
   '/dashboard/settings/change-password': typeof dashboardDashboardSettingsChangePasswordRoute
@@ -490,6 +498,7 @@ export interface FileRoutesById {
   '/(oauth)/oauth/consent': typeof oauthOauthConsentRoute
   '/(dashboard)/dashboard/': typeof dashboardDashboardIndexRoute
   '/(marketing)/blog/': typeof marketingBlogIndexRoute
+  '/(booking)/book/cancel/$token': typeof bookingBookCancelTokenRoute
   '/(dashboard)/dashboard/booking/$eventTypeId': typeof dashboardDashboardBookingEventTypeIdRoute
   '/(dashboard)/dashboard/settings/api-tokens': typeof dashboardDashboardSettingsApiTokensRoute
   '/(dashboard)/dashboard/settings/change-password': typeof dashboardDashboardSettingsChangePasswordRoute
@@ -542,6 +551,7 @@ export interface FileRouteTypes {
     | '/oauth/consent'
     | '/dashboard/'
     | '/blog/'
+    | '/book/cancel/$token'
     | '/dashboard/booking/$eventTypeId'
     | '/dashboard/settings/api-tokens'
     | '/dashboard/settings/change-password'
@@ -589,6 +599,7 @@ export interface FileRouteTypes {
     | '/auth/outlook'
     | '/oauth/consent'
     | '/blog'
+    | '/book/cancel/$token'
     | '/dashboard/booking/$eventTypeId'
     | '/dashboard/settings/api-tokens'
     | '/dashboard/settings/change-password'
@@ -644,6 +655,7 @@ export interface FileRouteTypes {
     | '/(oauth)/oauth/consent'
     | '/(dashboard)/dashboard/'
     | '/(marketing)/blog/'
+    | '/(booking)/book/cancel/$token'
     | '/(dashboard)/dashboard/booking/$eventTypeId'
     | '/(dashboard)/dashboard/settings/api-tokens'
     | '/(dashboard)/dashboard/settings/change-password'
@@ -1035,6 +1047,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof dashboardDashboardBookingEventTypeIdRouteImport
       parentRoute: typeof dashboardRouteRoute
     }
+    '/(booking)/book/cancel/$token': {
+      id: '/(booking)/book/cancel/$token'
+      path: '/book/cancel/$token'
+      fullPath: '/book/cancel/$token'
+      preLoaderRoute: typeof bookingBookCancelTokenRouteImport
+      parentRoute: typeof bookingRouteRoute
+    }
     '/(dashboard)/dashboard/accounts/$accountId/': {
       id: '/(dashboard)/dashboard/accounts/$accountId/'
       path: '/$accountId'
@@ -1083,10 +1102,12 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 
 interface bookingRouteRouteChildren {
   bookingUserSlugEventSlugRoute: typeof bookingUserSlugEventSlugRoute
+  bookingBookCancelTokenRoute: typeof bookingBookCancelTokenRoute
 }
 
 const bookingRouteRouteChildren: bookingRouteRouteChildren = {
   bookingUserSlugEventSlugRoute: bookingUserSlugEventSlugRoute,
+  bookingBookCancelTokenRoute: bookingBookCancelTokenRoute,
 }
 
 const bookingRouteRouteWithChildren = bookingRouteRoute._addFileChildren(
