@@ -46,6 +46,7 @@ import { Route as dashboardDashboardSettingsIndexRouteImport } from './../../rou
 import { Route as dashboardDashboardIntegrationsIndexRouteImport } from './../../routes/(dashboard)/dashboard/integrations/index'
 import { Route as dashboardDashboardEventsIndexRouteImport } from './../../routes/(dashboard)/dashboard/events/index'
 import { Route as dashboardDashboardConnectIndexRouteImport } from './../../routes/(dashboard)/dashboard/connect/index'
+import { Route as dashboardDashboardBookingIndexRouteImport } from './../../routes/(dashboard)/dashboard/booking/index'
 import { Route as oauthDashboardConnectZohoRouteImport } from './../../routes/(oauth)/dashboard/connect/zoho'
 import { Route as oauthDashboardConnectOutlookRouteImport } from './../../routes/(oauth)/dashboard/connect/outlook'
 import { Route as oauthDashboardConnectMicrosoftRouteImport } from './../../routes/(oauth)/dashboard/connect/microsoft'
@@ -58,6 +59,7 @@ import { Route as oauthDashboardConnectAppleRouteImport } from './../../routes/(
 import { Route as dashboardDashboardSettingsPasskeysRouteImport } from './../../routes/(dashboard)/dashboard/settings/passkeys'
 import { Route as dashboardDashboardSettingsChangePasswordRouteImport } from './../../routes/(dashboard)/dashboard/settings/change-password'
 import { Route as dashboardDashboardSettingsApiTokensRouteImport } from './../../routes/(dashboard)/dashboard/settings/api-tokens'
+import { Route as dashboardDashboardBookingEventTypeIdRouteImport } from './../../routes/(dashboard)/dashboard/booking/$eventTypeId'
 import { Route as dashboardDashboardAccountsAccountIdIndexRouteImport } from './../../routes/(dashboard)/dashboard/accounts/$accountId.index'
 import { Route as dashboardDashboardAccountsAccountIdSetupRouteImport } from './../../routes/(dashboard)/dashboard/accounts/$accountId.setup'
 import { Route as dashboardDashboardAccountsAccountIdCalendarIdRouteImport } from './../../routes/(dashboard)/dashboard/accounts/$accountId.$calendarId'
@@ -255,6 +257,12 @@ const dashboardDashboardConnectIndexRoute =
     path: '/',
     getParentRoute: () => dashboardDashboardConnectRouteRoute,
   } as any)
+const dashboardDashboardBookingIndexRoute =
+  dashboardDashboardBookingIndexRouteImport.update({
+    id: '/dashboard/booking/',
+    path: '/dashboard/booking/',
+    getParentRoute: () => dashboardRouteRoute,
+  } as any)
 const oauthDashboardConnectZohoRoute =
   oauthDashboardConnectZohoRouteImport.update({
     id: '/zoho',
@@ -327,6 +335,12 @@ const dashboardDashboardSettingsApiTokensRoute =
     path: '/api-tokens',
     getParentRoute: () => dashboardDashboardSettingsRouteRoute,
   } as any)
+const dashboardDashboardBookingEventTypeIdRoute =
+  dashboardDashboardBookingEventTypeIdRouteImport.update({
+    id: '/dashboard/booking/$eventTypeId',
+    path: '/dashboard/booking/$eventTypeId',
+    getParentRoute: () => dashboardRouteRoute,
+  } as any)
 const dashboardDashboardAccountsAccountIdIndexRoute =
   dashboardDashboardAccountsAccountIdIndexRouteImport.update({
     id: '/$accountId/',
@@ -373,6 +387,7 @@ export interface FileRoutesByFullPath {
   '/oauth/consent': typeof oauthOauthConsentRoute
   '/dashboard/': typeof dashboardDashboardIndexRoute
   '/blog/': typeof marketingBlogIndexRoute
+  '/dashboard/booking/$eventTypeId': typeof dashboardDashboardBookingEventTypeIdRoute
   '/dashboard/settings/api-tokens': typeof dashboardDashboardSettingsApiTokensRoute
   '/dashboard/settings/change-password': typeof dashboardDashboardSettingsChangePasswordRoute
   '/dashboard/settings/passkeys': typeof dashboardDashboardSettingsPasskeysRoute
@@ -385,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/connect/microsoft': typeof oauthDashboardConnectMicrosoftRoute
   '/dashboard/connect/outlook': typeof oauthDashboardConnectOutlookRoute
   '/dashboard/connect/zoho': typeof oauthDashboardConnectZohoRoute
+  '/dashboard/booking/': typeof dashboardDashboardBookingIndexRoute
   '/dashboard/connect/': typeof dashboardDashboardConnectIndexRoute
   '/dashboard/events/': typeof dashboardDashboardEventsIndexRoute
   '/dashboard/integrations/': typeof dashboardDashboardIntegrationsIndexRoute
@@ -418,6 +434,7 @@ export interface FileRoutesByTo {
   '/auth/outlook': typeof oauthAuthOutlookRoute
   '/oauth/consent': typeof oauthOauthConsentRoute
   '/blog': typeof marketingBlogIndexRoute
+  '/dashboard/booking/$eventTypeId': typeof dashboardDashboardBookingEventTypeIdRoute
   '/dashboard/settings/api-tokens': typeof dashboardDashboardSettingsApiTokensRoute
   '/dashboard/settings/change-password': typeof dashboardDashboardSettingsChangePasswordRoute
   '/dashboard/settings/passkeys': typeof dashboardDashboardSettingsPasskeysRoute
@@ -430,6 +447,7 @@ export interface FileRoutesByTo {
   '/dashboard/connect/microsoft': typeof oauthDashboardConnectMicrosoftRoute
   '/dashboard/connect/outlook': typeof oauthDashboardConnectOutlookRoute
   '/dashboard/connect/zoho': typeof oauthDashboardConnectZohoRoute
+  '/dashboard/booking': typeof dashboardDashboardBookingIndexRoute
   '/dashboard/events': typeof dashboardDashboardEventsIndexRoute
   '/dashboard/integrations': typeof dashboardDashboardIntegrationsIndexRoute
   '/dashboard/settings': typeof dashboardDashboardSettingsIndexRoute
@@ -472,6 +490,7 @@ export interface FileRoutesById {
   '/(oauth)/oauth/consent': typeof oauthOauthConsentRoute
   '/(dashboard)/dashboard/': typeof dashboardDashboardIndexRoute
   '/(marketing)/blog/': typeof marketingBlogIndexRoute
+  '/(dashboard)/dashboard/booking/$eventTypeId': typeof dashboardDashboardBookingEventTypeIdRoute
   '/(dashboard)/dashboard/settings/api-tokens': typeof dashboardDashboardSettingsApiTokensRoute
   '/(dashboard)/dashboard/settings/change-password': typeof dashboardDashboardSettingsChangePasswordRoute
   '/(dashboard)/dashboard/settings/passkeys': typeof dashboardDashboardSettingsPasskeysRoute
@@ -484,6 +503,7 @@ export interface FileRoutesById {
   '/(oauth)/dashboard/connect/microsoft': typeof oauthDashboardConnectMicrosoftRoute
   '/(oauth)/dashboard/connect/outlook': typeof oauthDashboardConnectOutlookRoute
   '/(oauth)/dashboard/connect/zoho': typeof oauthDashboardConnectZohoRoute
+  '/(dashboard)/dashboard/booking/': typeof dashboardDashboardBookingIndexRoute
   '/(dashboard)/dashboard/connect/': typeof dashboardDashboardConnectIndexRoute
   '/(dashboard)/dashboard/events/': typeof dashboardDashboardEventsIndexRoute
   '/(dashboard)/dashboard/integrations/': typeof dashboardDashboardIntegrationsIndexRoute
@@ -522,6 +542,7 @@ export interface FileRouteTypes {
     | '/oauth/consent'
     | '/dashboard/'
     | '/blog/'
+    | '/dashboard/booking/$eventTypeId'
     | '/dashboard/settings/api-tokens'
     | '/dashboard/settings/change-password'
     | '/dashboard/settings/passkeys'
@@ -534,6 +555,7 @@ export interface FileRouteTypes {
     | '/dashboard/connect/microsoft'
     | '/dashboard/connect/outlook'
     | '/dashboard/connect/zoho'
+    | '/dashboard/booking/'
     | '/dashboard/connect/'
     | '/dashboard/events/'
     | '/dashboard/integrations/'
@@ -567,6 +589,7 @@ export interface FileRouteTypes {
     | '/auth/outlook'
     | '/oauth/consent'
     | '/blog'
+    | '/dashboard/booking/$eventTypeId'
     | '/dashboard/settings/api-tokens'
     | '/dashboard/settings/change-password'
     | '/dashboard/settings/passkeys'
@@ -579,6 +602,7 @@ export interface FileRouteTypes {
     | '/dashboard/connect/microsoft'
     | '/dashboard/connect/outlook'
     | '/dashboard/connect/zoho'
+    | '/dashboard/booking'
     | '/dashboard/events'
     | '/dashboard/integrations'
     | '/dashboard/settings'
@@ -620,6 +644,7 @@ export interface FileRouteTypes {
     | '/(oauth)/oauth/consent'
     | '/(dashboard)/dashboard/'
     | '/(marketing)/blog/'
+    | '/(dashboard)/dashboard/booking/$eventTypeId'
     | '/(dashboard)/dashboard/settings/api-tokens'
     | '/(dashboard)/dashboard/settings/change-password'
     | '/(dashboard)/dashboard/settings/passkeys'
@@ -632,6 +657,7 @@ export interface FileRouteTypes {
     | '/(oauth)/dashboard/connect/microsoft'
     | '/(oauth)/dashboard/connect/outlook'
     | '/(oauth)/dashboard/connect/zoho'
+    | '/(dashboard)/dashboard/booking/'
     | '/(dashboard)/dashboard/connect/'
     | '/(dashboard)/dashboard/events/'
     | '/(dashboard)/dashboard/integrations/'
@@ -911,6 +937,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof dashboardDashboardConnectIndexRouteImport
       parentRoute: typeof dashboardDashboardConnectRouteRoute
     }
+    '/(dashboard)/dashboard/booking/': {
+      id: '/(dashboard)/dashboard/booking/'
+      path: '/dashboard/booking'
+      fullPath: '/dashboard/booking/'
+      preLoaderRoute: typeof dashboardDashboardBookingIndexRouteImport
+      parentRoute: typeof dashboardRouteRoute
+    }
     '/(oauth)/dashboard/connect/zoho': {
       id: '/(oauth)/dashboard/connect/zoho'
       path: '/zoho'
@@ -994,6 +1027,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/settings/api-tokens'
       preLoaderRoute: typeof dashboardDashboardSettingsApiTokensRouteImport
       parentRoute: typeof dashboardDashboardSettingsRouteRoute
+    }
+    '/(dashboard)/dashboard/booking/$eventTypeId': {
+      id: '/(dashboard)/dashboard/booking/$eventTypeId'
+      path: '/dashboard/booking/$eventTypeId'
+      fullPath: '/dashboard/booking/$eventTypeId'
+      preLoaderRoute: typeof dashboardDashboardBookingEventTypeIdRouteImport
+      parentRoute: typeof dashboardRouteRoute
     }
     '/(dashboard)/dashboard/accounts/$accountId/': {
       id: '/(dashboard)/dashboard/accounts/$accountId/'
@@ -1120,6 +1160,8 @@ interface dashboardRouteRouteChildren {
   dashboardDashboardMapRoute: typeof dashboardDashboardMapRoute
   dashboardDashboardReportRoute: typeof dashboardDashboardReportRoute
   dashboardDashboardIndexRoute: typeof dashboardDashboardIndexRoute
+  dashboardDashboardBookingEventTypeIdRoute: typeof dashboardDashboardBookingEventTypeIdRoute
+  dashboardDashboardBookingIndexRoute: typeof dashboardDashboardBookingIndexRoute
   dashboardDashboardEventsIndexRoute: typeof dashboardDashboardEventsIndexRoute
   dashboardDashboardIntegrationsIndexRoute: typeof dashboardDashboardIntegrationsIndexRoute
   dashboardDashboardUpgradeIndexRoute: typeof dashboardDashboardUpgradeIndexRoute
@@ -1137,6 +1179,9 @@ const dashboardRouteRouteChildren: dashboardRouteRouteChildren = {
   dashboardDashboardMapRoute: dashboardDashboardMapRoute,
   dashboardDashboardReportRoute: dashboardDashboardReportRoute,
   dashboardDashboardIndexRoute: dashboardDashboardIndexRoute,
+  dashboardDashboardBookingEventTypeIdRoute:
+    dashboardDashboardBookingEventTypeIdRoute,
+  dashboardDashboardBookingIndexRoute: dashboardDashboardBookingIndexRoute,
   dashboardDashboardEventsIndexRoute: dashboardDashboardEventsIndexRoute,
   dashboardDashboardIntegrationsIndexRoute:
     dashboardDashboardIntegrationsIndexRoute,
