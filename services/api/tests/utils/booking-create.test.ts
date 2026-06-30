@@ -23,6 +23,7 @@ const target: ResolvedBookingTarget = {
     bufferAfterMinutes: 0,
     minNoticeMinutes: 0,
     maxAdvanceDays: 60,
+    maxBookingsPerDay: null,
     timezone: "America/Montevideo",
     destinationCalendarId: "cal-1",
     conflictCalendarIds: null,

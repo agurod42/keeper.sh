@@ -23,6 +23,7 @@ interface ResolvedEventType {
   bufferAfterMinutes: number;
   minNoticeMinutes: number;
   maxAdvanceDays: number;
+  maxBookingsPerDay: number | null;
   timezone: string;
   destinationCalendarId: string;
   conflictCalendarIds: string[] | null;

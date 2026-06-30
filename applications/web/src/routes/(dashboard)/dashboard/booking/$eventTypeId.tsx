@@ -40,6 +40,7 @@ interface EventType {
   bufferAfterMinutes: number;
   minNoticeMinutes: number;
   maxAdvanceDays: number;
+  maxBookingsPerDay: number | null;
   timezone: string;
   destinationCalendarId: string;
   conflictCalendarIds: string[] | null;
@@ -208,6 +209,7 @@ function EventTypeEditor() {
           bufferAfterMinutes: draft.bufferAfterMinutes,
           minNoticeMinutes: draft.minNoticeMinutes,
           maxAdvanceDays: draft.maxAdvanceDays,
+          maxBookingsPerDay: draft.maxBookingsPerDay,
           timezone: draft.timezone,
           destinationCalendarId: draft.destinationCalendarId,
           conflictCalendarIds: draft.conflictCalendarIds,
@@ -272,6 +274,14 @@ function EventTypeEditor() {
               placeholder="Max advance (days)"
             />
           </div>
+          <Input
+            type="number"
+            value={draft.maxBookingsPerDay ?? ""}
+            onChange={(event) =>
+              update({ maxBookingsPerDay: event.target.value ? Number(event.target.value) : null })
+            }
+            placeholder="Max bookings per day (blank = unlimited)"
+          />
           <Input value={draft.timezone} onChange={(event) => update({ timezone: event.target.value })} placeholder="Timezone" />
           <label className="flex items-center gap-2 text-sm">
             <input

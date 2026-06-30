@@ -519,6 +519,13 @@
       "when": 1782839292295,
       "tag": "0073_wet_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1782842942745,
+      "tag": "0074_damp_terrax",
+      "breakpoints": true
     }
   ]
 }

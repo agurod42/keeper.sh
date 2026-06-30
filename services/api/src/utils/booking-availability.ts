@@ -49,6 +49,14 @@ const computeDayAvailability = async (
     to,
   );
 
+  // Per-day cap: a day holding `maxBookingsPerDay` confirmed bookings is full.
+  if (
+    eventType.maxBookingsPerDay !== null &&
+    bookingIntervals.length >= eventType.maxBookingsPerDay
+  ) {
+    return [];
+  }
+
   const rules = await getAvailabilityRules(database, eventType.id);
 
   return computeAvailableSlots({

@@ -379,6 +379,7 @@ const eventTypesTable = pgTable(
     locationType: text().notNull().default("none"),
     locationValue: text(),
     maxAdvanceDays: integer().notNull().default(60),
+    maxBookingsPerDay: integer(),
     minNoticeMinutes: integer().notNull().default(0),
     slug: text().notNull(),
     timezone: text().notNull(),

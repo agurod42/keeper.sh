@@ -73,6 +73,7 @@ const createEventType = async (
       bufferAfterMinutes: body.bufferAfterMinutes ?? 0,
       minNoticeMinutes: body.minNoticeMinutes ?? 0,
       maxAdvanceDays: body.maxAdvanceDays ?? 60,
+      maxBookingsPerDay: body.maxBookingsPerDay ?? null,
       timezone: body.timezone,
       destinationCalendarId: body.destinationCalendarId,
       conflictCalendarIds: body.conflictCalendarIds ?? null,
