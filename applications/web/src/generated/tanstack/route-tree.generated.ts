@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './../../routes/__root'
 import { Route as oauthRouteRouteImport } from './../../routes/(oauth)/route'
 import { Route as marketingRouteRouteImport } from './../../routes/(marketing)/route'
 import { Route as dashboardRouteRouteImport } from './../../routes/(dashboard)/route'
+import { Route as bookingRouteRouteImport } from './../../routes/(booking)/route'
 import { Route as authRouteRouteImport } from './../../routes/(auth)/route'
 import { Route as marketingIndexRouteImport } from './../../routes/(marketing)/index'
 import { Route as marketingTermsRouteImport } from './../../routes/(marketing)/terms'
@@ -35,6 +36,7 @@ import { Route as dashboardDashboardReportRouteImport } from './../../routes/(da
 import { Route as dashboardDashboardMapRouteImport } from './../../routes/(dashboard)/dashboard/map'
 import { Route as dashboardDashboardIcalRouteImport } from './../../routes/(dashboard)/dashboard/ical'
 import { Route as dashboardDashboardFeedbackRouteImport } from './../../routes/(dashboard)/dashboard/feedback'
+import { Route as bookingUserSlugEventSlugRouteImport } from './../../routes/(booking)/$userSlug.$eventSlug'
 import { Route as oauthDashboardConnectRouteRouteImport } from './../../routes/(oauth)/dashboard/connect/route'
 import { Route as dashboardDashboardSettingsRouteRouteImport } from './../../routes/(dashboard)/dashboard/settings/route'
 import { Route as dashboardDashboardConnectRouteRouteImport } from './../../routes/(dashboard)/dashboard/connect/route'
@@ -70,6 +72,10 @@ const marketingRouteRoute = marketingRouteRouteImport.update({
 } as any)
 const dashboardRouteRoute = dashboardRouteRouteImport.update({
   id: '/(dashboard)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const bookingRouteRoute = bookingRouteRouteImport.update({
+  id: '/(booking)',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authRouteRoute = authRouteRouteImport.update({
@@ -188,6 +194,12 @@ const dashboardDashboardFeedbackRoute =
     id: '/dashboard/feedback',
     path: '/dashboard/feedback',
     getParentRoute: () => dashboardRouteRoute,
+  } as any)
+const bookingUserSlugEventSlugRoute =
+  bookingUserSlugEventSlugRouteImport.update({
+    id: '/$userSlug/$eventSlug',
+    path: '/$userSlug/$eventSlug',
+    getParentRoute: () => bookingRouteRoute,
   } as any)
 const oauthDashboardConnectRouteRoute =
   oauthDashboardConnectRouteRouteImport.update({
@@ -350,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounts': typeof dashboardDashboardAccountsRouteRouteWithChildren
   '/dashboard/connect': typeof oauthDashboardConnectRouteRouteWithChildren
   '/dashboard/settings': typeof dashboardDashboardSettingsRouteRouteWithChildren
+  '/$userSlug/$eventSlug': typeof bookingUserSlugEventSlugRoute
   '/dashboard/feedback': typeof dashboardDashboardFeedbackRoute
   '/dashboard/ical': typeof dashboardDashboardIcalRoute
   '/dashboard/map': typeof dashboardDashboardMapRoute
@@ -395,6 +408,7 @@ export interface FileRoutesByTo {
   '/': typeof marketingIndexRoute
   '/dashboard/accounts': typeof dashboardDashboardAccountsRouteRouteWithChildren
   '/dashboard/connect': typeof dashboardDashboardConnectIndexRoute
+  '/$userSlug/$eventSlug': typeof bookingUserSlugEventSlugRoute
   '/dashboard/feedback': typeof dashboardDashboardFeedbackRoute
   '/dashboard/ical': typeof dashboardDashboardIcalRoute
   '/dashboard/map': typeof dashboardDashboardMapRoute
@@ -427,6 +441,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
+  '/(booking)': typeof bookingRouteRouteWithChildren
   '/(dashboard)': typeof dashboardRouteRouteWithChildren
   '/(marketing)': typeof marketingRouteRouteWithChildren
   '/(oauth)': typeof oauthRouteRouteWithChildren
@@ -446,6 +461,7 @@ export interface FileRoutesById {
   '/(dashboard)/dashboard/connect': typeof dashboardDashboardConnectRouteRouteWithChildren
   '/(dashboard)/dashboard/settings': typeof dashboardDashboardSettingsRouteRouteWithChildren
   '/(oauth)/dashboard/connect': typeof oauthDashboardConnectRouteRouteWithChildren
+  '/(booking)/$userSlug/$eventSlug': typeof bookingUserSlugEventSlugRoute
   '/(dashboard)/dashboard/feedback': typeof dashboardDashboardFeedbackRoute
   '/(dashboard)/dashboard/ical': typeof dashboardDashboardIcalRoute
   '/(dashboard)/dashboard/map': typeof dashboardDashboardMapRoute
@@ -495,6 +511,7 @@ export interface FileRouteTypes {
     | '/dashboard/accounts'
     | '/dashboard/connect'
     | '/dashboard/settings'
+    | '/$userSlug/$eventSlug'
     | '/dashboard/feedback'
     | '/dashboard/ical'
     | '/dashboard/map'
@@ -540,6 +557,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard/accounts'
     | '/dashboard/connect'
+    | '/$userSlug/$eventSlug'
     | '/dashboard/feedback'
     | '/dashboard/ical'
     | '/dashboard/map'
@@ -571,6 +589,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/(auth)'
+    | '/(booking)'
     | '/(dashboard)'
     | '/(marketing)'
     | '/(oauth)'
@@ -590,6 +609,7 @@ export interface FileRouteTypes {
     | '/(dashboard)/dashboard/connect'
     | '/(dashboard)/dashboard/settings'
     | '/(oauth)/dashboard/connect'
+    | '/(booking)/$userSlug/$eventSlug'
     | '/(dashboard)/dashboard/feedback'
     | '/(dashboard)/dashboard/ical'
     | '/(dashboard)/dashboard/map'
@@ -624,6 +644,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
+  bookingRouteRoute: typeof bookingRouteRouteWithChildren
   dashboardRouteRoute: typeof dashboardRouteRouteWithChildren
   marketingRouteRoute: typeof marketingRouteRouteWithChildren
   oauthRouteRoute: typeof oauthRouteRouteWithChildren
@@ -650,6 +671,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof dashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(booking)': {
+      id: '/(booking)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof bookingRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)': {
@@ -812,6 +840,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/feedback'
       preLoaderRoute: typeof dashboardDashboardFeedbackRouteImport
       parentRoute: typeof dashboardRouteRoute
+    }
+    '/(booking)/$userSlug/$eventSlug': {
+      id: '/(booking)/$userSlug/$eventSlug'
+      path: '/$userSlug/$eventSlug'
+      fullPath: '/$userSlug/$eventSlug'
+      preLoaderRoute: typeof bookingUserSlugEventSlugRouteImport
+      parentRoute: typeof bookingRouteRoute
     }
     '/(oauth)/dashboard/connect': {
       id: '/(oauth)/dashboard/connect'
@@ -1004,6 +1039,18 @@ const authRouteRouteChildren: authRouteRouteChildren = {
 
 const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
+)
+
+interface bookingRouteRouteChildren {
+  bookingUserSlugEventSlugRoute: typeof bookingUserSlugEventSlugRoute
+}
+
+const bookingRouteRouteChildren: bookingRouteRouteChildren = {
+  bookingUserSlugEventSlugRoute: bookingUserSlugEventSlugRoute,
+}
+
+const bookingRouteRouteWithChildren = bookingRouteRoute._addFileChildren(
+  bookingRouteRouteChildren,
 )
 
 interface dashboardDashboardAccountsRouteRouteChildren {
@@ -1204,6 +1251,7 @@ const oauthRouteRouteWithChildren = oauthRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
+  bookingRouteRoute: bookingRouteRouteWithChildren,
   dashboardRouteRoute: dashboardRouteRouteWithChildren,
   marketingRouteRoute: marketingRouteRouteWithChildren,
   oauthRouteRoute: oauthRouteRouteWithChildren,

@@ -57,6 +57,10 @@ export default defineConfig(({ isSsrBuild }) => ({
         target: "http://localhost:3000",
         ws: true,
       },
+      "/book": {
+        changeOrigin: true,
+        target: "http://localhost:3000",
+      },
       "/mcp": {
         changeOrigin: true,
         target: "http://localhost:3001",
