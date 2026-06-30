@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -346,14 +347,110 @@ const icalFeedSettingsTable = pgTable("ical_feed_settings", {
     .$onUpdate(() => new Date()),
 });
 
+const bookingProfilesTable = pgTable("booking_profiles", {
+  avatarUrl: text(),
+  createdAt: timestamp().notNull().defaultNow(),
+  displayName: text().notNull(),
+  id: uuid().notNull().primaryKey().defaultRandom(),
+  slug: text().notNull().unique(),
+  updatedAt: timestamp()
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+  userId: text()
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+});
+
+const eventTypesTable = pgTable(
+  "event_types",
+  {
+    bufferAfterMinutes: integer().notNull().default(0),
+    bufferBeforeMinutes: integer().notNull().default(0),
+    color: text(),
+    conflictCalendarIds: jsonb().$type<string[]>(),
+    createdAt: timestamp().notNull().defaultNow(),
+    description: text(),
+    destinationCalendarId: text().notNull(),
+    durationMinutes: integer().notNull(),
+    id: uuid().notNull().primaryKey().defaultRandom(),
+    isActive: boolean().notNull().default(true),
+    locationType: text().notNull().default("none"),
+    locationValue: text(),
+    maxAdvanceDays: integer().notNull().default(60),
+    minNoticeMinutes: integer().notNull().default(0),
+    slug: text().notNull(),
+    timezone: text().notNull(),
+    title: text().notNull(),
+    updatedAt: timestamp()
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("event_types_user_slug_idx").on(table.userId, table.slug),
+    index("event_types_user_idx").on(table.userId),
+  ],
+);
+
+const availabilityRulesTable = pgTable(
+  "availability_rules",
+  {
+    endMinute: integer().notNull(),
+    eventTypeId: uuid()
+      .notNull()
+      .references(() => eventTypesTable.id, { onDelete: "cascade" }),
+    id: uuid().notNull().primaryKey().defaultRandom(),
+    startMinute: integer().notNull(),
+    weekday: integer().notNull(),
+  },
+  (table) => [
+    index("availability_rules_event_type_idx").on(table.eventTypeId),
+  ],
+);
+
+const bookingsTable = pgTable(
+  "bookings",
+  {
+    cancelToken: text().notNull().unique(),
+    createdAt: timestamp().notNull().defaultNow(),
+    endTime: timestamp().notNull(),
+    eventTypeId: uuid()
+      .notNull()
+      .references(() => eventTypesTable.id, { onDelete: "cascade" }),
+    guestEmail: text().notNull(),
+    guestName: text().notNull(),
+    guestNotes: text(),
+    guestTimezone: text().notNull(),
+    id: uuid().notNull().primaryKey().defaultRandom(),
+    startTime: timestamp().notNull(),
+    status: text().notNull().default("confirmed"),
+    userEventId: text().notNull(),
+  },
+  (table) => [
+    uniqueIndex("bookings_confirmed_slot_idx")
+      .on(table.eventTypeId, table.startTime)
+      .where(sql`${table.status} = 'confirmed'`),
+    index("bookings_event_type_idx").on(table.eventTypeId),
+  ],
+);
+
 export {
   apiTokensTable,
+  availabilityRulesTable,
+  bookingProfilesTable,
+  bookingsTable,
   caldavCredentialsTable,
   calendarAccountsTable,
   calendarSnapshotsTable,
   calendarsTable,
   eventMappingsTable,
   eventStatesTable,
+  eventTypesTable,
   feedbackTable,
   icalFeedSettingsTable,
   oauthCredentialsTable,
