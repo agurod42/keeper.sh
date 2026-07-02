@@ -120,7 +120,10 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
   }, [layout.nodes]);
 
   return (
-    <div className="overflow-x-auto -mx-1 px-1">
+    // Only the diagram breaks out of the dashboard's narrow max-w-sm column to
+    // full viewport width; the header and detail panel stay in the normal
+    // column. The graph itself stays centered within the wide area.
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto px-4">
       <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
         <svg
           className="absolute inset-0 overflow-visible"
