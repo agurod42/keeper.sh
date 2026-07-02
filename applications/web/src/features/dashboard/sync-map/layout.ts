@@ -8,8 +8,8 @@ export const PADDING = 16;
 
 export type SyncMapRole = "source" | "both" | "destination";
 
-// Bottom-up: sources at the bottom, "both" in the middle, destinations (and the
-// unified feed) at the top. Depth 0 is the source layer.
+// Top-down: sources at the top, "both" in the middle, destinations (and the
+// unified feed) at the bottom. Depth 0 is the source layer.
 const LAYER_ORDER: SyncMapRole[] = ["source", "both", "destination"];
 
 export interface NodeRect {
@@ -101,12 +101,12 @@ const reduceCrossings = (layers: SyncMapNode[][], edges: SyncMapEdge[]): void =>
   }
 };
 
-/** Vertical S-curve from the top of the source up to the bottom of the destination. */
+/** Vertical S-curve from the bottom of the source down to the top of the destination. */
 export const buildEdgePath = (from: NodeRect, to: NodeRect): string => {
   const fromX = from.x + from.width / 2;
-  const fromY = from.y;
+  const fromY = from.y + from.height;
   const toX = to.x + to.width / 2;
-  const toY = to.y + to.height;
+  const toY = to.y;
   const midY = (fromY + toY) / 2;
   return `M ${fromX} ${fromY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`;
 };
@@ -115,8 +115,8 @@ const rowWidth = (count: number): number =>
   count * NODE_WIDTH + Math.max(0, count - 1) * NODE_GAP;
 
 /**
- * Vertical bipartite-by-role layout: source calendars on the bottom row, the
- * flow rising through the middle to destinations (and the ICS feed) on top.
+ * Vertical bipartite-by-role layout: source calendars on the top row, the flow
+ * descending through the middle to destinations (and the ICS feed) at the bottom.
  */
 export const computeSyncMapLayout = (graph: SyncMapGraph): SyncMapLayout => {
   const byRole = new Map<SyncMapRole, SyncMapNode[]>();
@@ -141,8 +141,8 @@ export const computeSyncMapLayout = (graph: SyncMapGraph): SyncMapLayout => {
 
   const nodes: PositionedNode[] = [];
   layers.forEach((layerNodes, depth) => {
-    // depth 0 (sources) sits at the bottom; the last layer sits at the top.
-    const y = PADDING + (layerCount - 1 - depth) * (NODE_HEIGHT + LAYER_GAP);
+    // depth 0 (sources) sits at the top; the last layer sits at the bottom.
+    const y = PADDING + depth * (NODE_HEIGHT + LAYER_GAP);
     const startX = PADDING + (maxRowWidth - rowWidth(layerNodes.length)) / 2;
 
     layerNodes.forEach((node, index) => {

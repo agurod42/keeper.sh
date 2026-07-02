@@ -87,9 +87,9 @@ interface EdgeArrow {
  */
 function edgeArrows(from: NodeRect, to: NodeRect, bidirectional: boolean): EdgeArrow[] {
   const fromX = from.x + from.width / 2;
-  const fromY = from.y;
+  const fromY = from.y + from.height;
   const toX = to.x + to.width / 2;
-  const toY = to.y + to.height;
+  const toY = to.y;
   const centerX = (fromX + toX) / 2;
   const centerY = (fromY + toY) / 2;
   // Tangent of the vertical S-curve at its midpoint.
@@ -221,7 +221,7 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
 
   return (
     // Only the diagram breaks out of the dashboard's narrow max-w-sm column; it
-    // is capped and centered so the bottom-up flow fits without swimming.
+    // is capped and centered so the top-down flow fits without swimming.
     <div className="relative left-1/2 w-screen max-w-5xl -translate-x-1/2 overflow-x-auto px-4">
       <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
         <svg
