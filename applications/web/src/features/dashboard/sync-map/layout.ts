@@ -1,38 +1,36 @@
 import type { SyncMapEdge, SyncMapGraph, SyncMapNode } from "./normalize";
 
-export const NODE_WIDTH = 168;
-export const NODE_HEIGHT = 64;
-export const COLUMN_GAP = 88;
-export const ROW_GAP = 20;
+export const NODE_WIDTH = 132;
+export const NODE_HEIGHT = 52;
+export const LAYER_GAP = 84; // vertical gap between role layers
+export const NODE_GAP = 18; // horizontal gap between nodes within a layer
 export const PADDING = 16;
 
 export type SyncMapRole = "source" | "both" | "destination";
 
-const COLUMN_ORDER: SyncMapRole[] = ["source", "both", "destination"];
+// Bottom-up: sources at the bottom, "both" in the middle, destinations (and the
+// unified feed) at the top. Depth 0 is the source layer.
+const LAYER_ORDER: SyncMapRole[] = ["source", "both", "destination"];
 
-export interface PositionedNode {
-  node: SyncMapNode;
-  role: SyncMapRole;
-  column: number;
+export interface NodeRect {
   x: number;
   y: number;
   width: number;
   height: number;
-  centerY: number;
 }
 
-export interface PositionedEdge {
-  edge: SyncMapEdge;
-  path: string;
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
+export interface PositionedNode {
+  node: SyncMapNode;
+  role: SyncMapRole;
+  layer: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface SyncMapLayout {
   nodes: PositionedNode[];
-  edges: PositionedEdge[];
   width: number;
   height: number;
 }
@@ -50,20 +48,11 @@ const resolveRole = (node: SyncMapNode): SyncMapRole => {
   return "destination";
 };
 
-const bezierPath = (
-  fromX: number,
-  fromY: number,
-  toX: number,
-  toY: number,
-  c1X: number,
-  c2X: number,
-): string => `M ${fromX} ${fromY} C ${c1X} ${fromY}, ${c2X} ${toY}, ${toX} ${toY}`;
-
 /**
- * Reorder each column in place with a few barycenter sweeps so connected nodes
- * line up vertically and edges cross less. Columns are mutated by reference.
+ * Reorder each layer in place with a few barycenter sweeps so connected nodes
+ * line up and edges cross less. Layers are mutated by reference.
  */
-const reduceCrossings = (columns: SyncMapNode[][], edges: SyncMapEdge[]): void => {
+const reduceCrossings = (layers: SyncMapNode[][], edges: SyncMapEdge[]): void => {
   const adjacency = new Map<string, Set<string>>();
   const link = (a: string, b: string) => {
     const set = adjacency.get(a) ?? new Set<string>();
@@ -76,12 +65,12 @@ const reduceCrossings = (columns: SyncMapNode[][], edges: SyncMapEdge[]): void =
   }
 
   const position = new Map<string, number>();
-  const refresh = (column: SyncMapNode[]) => {
-    column.forEach((node, index) => {
-      position.set(node.id, column.length <= 1 ? 0.5 : index / (column.length - 1));
+  const refresh = (layer: SyncMapNode[]) => {
+    layer.forEach((node, index) => {
+      position.set(node.id, layer.length <= 1 ? 0.5 : index / (layer.length - 1));
     });
   };
-  columns.forEach(refresh);
+  layers.forEach(refresh);
 
   const barycenter = (node: SyncMapNode): number => {
     const neighbours = adjacency.get(node.id);
@@ -101,22 +90,33 @@ const reduceCrossings = (columns: SyncMapNode[][], edges: SyncMapEdge[]): void =
 
   const SWEEPS = 4;
   for (let iteration = 0; iteration < SWEEPS; iteration += 1) {
-    const indices = columns.map((_, index) => index);
+    const indices = layers.map((_, index) => index);
     if (iteration % 2 === 1) indices.reverse();
-    for (const columnIndex of indices) {
-      const column = columns[columnIndex];
-      const key = new Map(column.map((node) => [node.id, barycenter(node)]));
-      column.sort((a, b) => (key.get(a.id) ?? 0) - (key.get(b.id) ?? 0));
-      refresh(column);
+    for (const layerIndex of indices) {
+      const layer = layers[layerIndex];
+      const key = new Map(layer.map((node) => [node.id, barycenter(node)]));
+      layer.sort((a, b) => (key.get(a.id) ?? 0) - (key.get(b.id) ?? 0));
+      refresh(layer);
     }
   }
 };
 
+/** Vertical S-curve from the top of the source up to the bottom of the destination. */
+export const buildEdgePath = (from: NodeRect, to: NodeRect): string => {
+  const fromX = from.x + from.width / 2;
+  const fromY = from.y;
+  const toX = to.x + to.width / 2;
+  const toY = to.y + to.height;
+  const midY = (fromY + toY) / 2;
+  return `M ${fromX} ${fromY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`;
+};
+
+const rowWidth = (count: number): number =>
+  count * NODE_WIDTH + Math.max(0, count - 1) * NODE_GAP;
+
 /**
- * Bipartite-by-role layout (design layout A): pure sources on the left,
- * source+destination calendars in the middle, pure destinations (and the ICS
- * feed) on the right. Empty columns collapse so two-column accounts still read
- * as a clean left-to-right Sankey.
+ * Vertical bipartite-by-role layout: source calendars on the bottom row, the
+ * flow rising through the middle to destinations (and the ICS feed) on top.
  */
 export const computeSyncMapLayout = (graph: SyncMapGraph): SyncMapLayout => {
   const byRole = new Map<SyncMapRole, SyncMapNode[]>();
@@ -130,84 +130,36 @@ export const computeSyncMapLayout = (graph: SyncMapGraph): SyncMapLayout => {
     }
   }
 
-  const presentColumns = COLUMN_ORDER.filter((role) => (byRole.get(role)?.length ?? 0) > 0);
-
-  reduceCrossings(presentColumns.map((role) => byRole.get(role) ?? []), graph.edges);
-
-  const columnHeight = (count: number): number =>
-    count * NODE_HEIGHT + Math.max(0, count - 1) * ROW_GAP;
-
-  const maxColumnHeight = Math.max(
-    0,
-    ...presentColumns.map((role) => columnHeight(byRole.get(role)?.length ?? 0)),
+  const layers = LAYER_ORDER.filter((role) => (byRole.get(role)?.length ?? 0) > 0).map(
+    (role) => byRole.get(role) as SyncMapNode[],
   );
 
-  const positionedByptr = new Map<string, PositionedNode>();
-  const positioned: PositionedNode[] = [];
+  reduceCrossings(layers, graph.edges);
 
-  presentColumns.forEach((role, column) => {
-    const columnNodes = byRole.get(role) ?? [];
-    const startY = PADDING + (maxColumnHeight - columnHeight(columnNodes.length)) / 2;
-    const x = PADDING + column * (NODE_WIDTH + COLUMN_GAP);
+  const layerCount = layers.length;
+  const maxRowWidth = Math.max(0, ...layers.map((layer) => rowWidth(layer.length)));
 
-    columnNodes.forEach((node, row) => {
-      const y = startY + row * (NODE_HEIGHT + ROW_GAP);
-      const entry: PositionedNode = {
+  const nodes: PositionedNode[] = [];
+  layers.forEach((layerNodes, depth) => {
+    // depth 0 (sources) sits at the bottom; the last layer sits at the top.
+    const y = PADDING + (layerCount - 1 - depth) * (NODE_HEIGHT + LAYER_GAP);
+    const startX = PADDING + (maxRowWidth - rowWidth(layerNodes.length)) / 2;
+
+    layerNodes.forEach((node, index) => {
+      nodes.push({
         node,
-        role,
-        column,
-        x,
+        role: resolveRole(node),
+        layer: depth,
+        x: startX + index * (NODE_WIDTH + NODE_GAP),
         y,
         width: NODE_WIDTH,
         height: NODE_HEIGHT,
-        centerY: y + NODE_HEIGHT / 2,
-      };
-      positioned.push(entry);
-      positionedByptr.set(node.id, entry);
+      });
     });
   });
 
-  const edges: PositionedEdge[] = [];
-  for (const edge of graph.edges) {
-    const from = positionedByptr.get(edge.sourceId);
-    const to = positionedByptr.get(edge.destinationId);
-    if (!from || !to) {
-      continue;
-    }
+  const width = maxRowWidth ? PADDING * 2 + maxRowWidth : 0;
+  const height = PADDING * 2 + layerCount * NODE_HEIGHT + Math.max(0, layerCount - 1) * LAYER_GAP;
 
-    if (to.x > from.x) {
-      const fromX = from.x + from.width;
-      const toX = to.x;
-      const delta = (toX - fromX) * 0.5;
-      edges.push({
-        edge,
-        fromX,
-        fromY: from.centerY,
-        toX,
-        toY: to.centerY,
-        path: bezierPath(fromX, from.centerY, toX, to.centerY, fromX + delta, toX - delta),
-      });
-      continue;
-    }
-
-    // Same column (bidirectional pair) or reverse flow: bulge out to the right.
-    const fromX = from.x + from.width;
-    const toX = to.x + to.width;
-    const bulge = NODE_WIDTH * 0.45 + COLUMN_GAP * 0.5;
-    edges.push({
-      edge,
-      fromX,
-      fromY: from.centerY,
-      toX,
-      toY: to.centerY,
-      path: bezierPath(fromX, from.centerY, toX, to.centerY, fromX + bulge, toX + bulge),
-    });
-  }
-
-  const width = presentColumns.length
-    ? PADDING * 2 + presentColumns.length * NODE_WIDTH + (presentColumns.length - 1) * COLUMN_GAP
-    : 0;
-  const height = PADDING * 2 + maxColumnHeight;
-
-  return { nodes: positioned, edges, width, height };
+  return { nodes, width, height };
 };

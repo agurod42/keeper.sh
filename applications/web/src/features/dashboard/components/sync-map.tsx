@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import useSWR from "swr";
 import { Link } from "@tanstack/react-router";
@@ -14,22 +14,27 @@ import X from "lucide-react/dist/esm/icons/x";
 import { loadMotionFeatures } from "@/lib/motion-features";
 import { useSyncMap } from "@/hooks/use-sync-map";
 import {
+  buildEdgePath,
   computeSyncMapLayout,
-  type PositionedEdge,
-  type PositionedNode,
+  type NodeRect,
 } from "@/features/dashboard/sync-map/layout";
-import { ICS_FEED_NODE_ID, type SyncMapNode } from "@/features/dashboard/sync-map/normalize";
+import {
+  ICS_FEED_NODE_ID,
+  type SyncMapEdge,
+  type SyncMapGraph,
+  type SyncMapNode,
+} from "@/features/dashboard/sync-map/normalize";
 import { syncMapHoverNodeIdAtom, syncMapSelectedNodeIdAtom } from "@/state/sync-map-hover";
 import { ProviderIcon } from "@/components/ui/primitives/provider-icon";
 import { Text } from "@/components/ui/primitives/text";
 import { Tooltip } from "@/components/ui/primitives/tooltip";
 import { ErrorState } from "@/components/ui/primitives/error-state";
 import { formatDate } from "@/lib/time";
-import type { SyncMapGraph } from "@/features/dashboard/sync-map/normalize";
 import type { CalendarDetail } from "@/types/api";
 
 const NEUTRAL_EDGE = "var(--color-border-elevated)";
 const FEED_EDGE = "var(--color-foreground-muted)";
+const DRAG_THRESHOLD = 3;
 
 // Distinguishable categorical hues so each source calendar's flows are
 // traceable. Calendars that carry a real provider color use that instead.
@@ -66,14 +71,14 @@ function edgeStyle(active: boolean, isFeed: boolean, sourceColor: string): EdgeS
   return { stroke: active ? sourceColor : NEUTRAL_EDGE, width: active ? 2 : 1.25, opacity: active ? 0.9 : 0.18 };
 }
 
-function buildNeighbors(edges: PositionedEdge[]): Map<string, Set<string>> {
+function buildNeighbors(edges: SyncMapEdge[]): Map<string, Set<string>> {
   const neighbors = new Map<string, Set<string>>();
   const connect = (a: string, b: string) => {
     const set = neighbors.get(a) ?? new Set<string>();
     set.add(b);
     neighbors.set(a, set);
   };
-  for (const { edge } of edges) {
+  for (const edge of edges) {
     connect(edge.sourceId, edge.destinationId);
     connect(edge.destinationId, edge.sourceId);
   }
@@ -86,7 +91,7 @@ function isNodeActive(hoverId: string | null, nodeId: string, neighbors: Map<str
   return neighbors.get(hoverId)?.has(nodeId) ?? false;
 }
 
-function isEdgeActive(hoverId: string | null, edge: PositionedEdge["edge"]): boolean {
+function isEdgeActive(hoverId: string | null, edge: SyncMapEdge): boolean {
   if (!hoverId) return true;
   return edge.sourceId === hoverId || edge.destinationId === hoverId;
 }
@@ -138,9 +143,11 @@ function SyncMapEmptyState() {
   );
 }
 
+type Positions = Record<string, { x: number; y: number }>;
+
 function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
   const layout = useMemo(() => computeSyncMapLayout(graph), [graph]);
-  const neighbors = useMemo(() => buildNeighbors(layout.edges), [layout.edges]);
+  const neighbors = useMemo(() => buildNeighbors(graph.edges), [graph.edges]);
   const hoverId = useAtomValue(syncMapHoverNodeIdAtom);
 
   const colorById = useMemo(() => {
@@ -149,14 +156,36 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
     return map;
   }, [layout.nodes]);
 
+  // User-dragged position overrides, keyed by node id. Kept across background
+  // revalidations so a refresh never yanks the user's arrangement; overrides for
+  // removed nodes are simply never read (only current layout nodes are drawn).
+  const [positions, setPositions] = useState<Positions>({});
+
+  const rectById = useMemo(() => {
+    const map = new Map<string, NodeRect>();
+    for (const positioned of layout.nodes) {
+      const override = positions[positioned.node.id];
+      map.set(positioned.node.id, {
+        x: override?.x ?? positioned.x,
+        y: override?.y ?? positioned.y,
+        width: positioned.width,
+        height: positioned.height,
+      });
+    }
+    return map;
+  }, [layout.nodes, positions]);
+
+  const moveNode = useCallback((id: string, x: number, y: number) => {
+    setPositions((prev) => ({ ...prev, [id]: { x, y } }));
+  }, []);
+
   return (
     // Only the diagram breaks out of the dashboard's narrow max-w-sm column; it
-    // is capped and centered (not full-bleed) so the eye doesn't travel far.
-    // The header and detail panel stay in the normal column.
-    <div className="relative left-1/2 w-screen max-w-3xl -translate-x-1/2 overflow-x-auto px-4">
+    // is capped and centered so the bottom-up flow fits without swimming.
+    <div className="relative left-1/2 w-screen max-w-5xl -translate-x-1/2 overflow-x-auto px-4">
       <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
         <svg
-          className="absolute inset-0 overflow-visible"
+          className="pointer-events-none absolute inset-0 overflow-visible"
           width={layout.width}
           height={layout.height}
           fill="none"
@@ -174,88 +203,124 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
               <path d="M 0 1 L 7 4 L 0 7 z" fill="context-stroke" />
             </marker>
           </defs>
-          {layout.edges.map((positioned) => {
-            const active = isEdgeActive(hoverId, positioned.edge);
-            const style = edgeStyle(
-              active,
-              positioned.edge.kind === "ics-feed",
-              colorById.get(positioned.edge.sourceId) ?? NEUTRAL_EDGE,
-            );
+          {graph.edges.map((edge) => {
+            const from = rectById.get(edge.sourceId);
+            const to = rectById.get(edge.destinationId);
+            if (!from || !to) return null;
+            const active = isEdgeActive(hoverId, edge);
+            const style = edgeStyle(active, edge.kind === "ics-feed", colorById.get(edge.sourceId) ?? NEUTRAL_EDGE);
             return (
               <m.path
-                key={positioned.edge.id}
-                d={positioned.path}
+                key={edge.id}
+                d={buildEdgePath(from, to)}
                 stroke={style.stroke}
                 strokeWidth={style.width}
                 strokeDasharray={style.dash}
                 strokeLinecap="round"
                 markerEnd="url(#sync-map-arrow)"
-                markerStart={positioned.edge.bidirectional ? "url(#sync-map-arrow)" : undefined}
-                style={{ opacity: style.opacity }}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: style.opacity }}
-                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                markerStart={edge.bidirectional ? "url(#sync-map-arrow)" : undefined}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: style.opacity }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               />
             );
           })}
         </svg>
-        {layout.nodes.map((positioned) => (
-          <SyncMapNodeCard
-            key={positioned.node.id}
-            positioned={positioned}
-            active={isNodeActive(hoverId, positioned.node.id, neighbors)}
-          />
-        ))}
+        {layout.nodes.map((positioned) => {
+          const rect = rectById.get(positioned.node.id);
+          if (!rect) return null;
+          return (
+            <SyncMapNodeCard
+              key={positioned.node.id}
+              node={positioned.node}
+              x={rect.x}
+              y={rect.y}
+              width={positioned.width}
+              height={positioned.height}
+              active={isNodeActive(hoverId, positioned.node.id, neighbors)}
+              onMove={moveNode}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
 interface SyncMapNodeCardProps {
-  positioned: PositionedNode;
+  node: SyncMapNode;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   active: boolean;
+  onMove: (id: string, x: number, y: number) => void;
 }
 
-function SyncMapNodeCard({ positioned, active }: SyncMapNodeCardProps) {
-  const { node, x, y, width, height } = positioned;
+function SyncMapNodeCard({ node, x, y, width, height, active, onMove }: SyncMapNodeCardProps) {
   const setHover = useSetAtom(syncMapHoverNodeIdAtom);
   const setSelected = useSetAtom(syncMapSelectedNodeIdAtom);
   const isFeed = node.kind === "ics-feed";
+  const drag = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { pointerX: event.clientX, pointerY: event.clientY, originX: x, originY: y, moved: false };
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = drag.current;
+    if (!state) return;
+    const dx = event.clientX - state.pointerX;
+    const dy = event.clientY - state.pointerY;
+    if (!state.moved && Math.hypot(dx, dy) > DRAG_THRESHOLD) state.moved = true;
+    if (state.moved) onMove(node.id, state.originX + dx, state.originY + dy);
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = drag.current;
+    if (!state) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    suppressClick.current = state.moved;
+    drag.current = null;
+  };
+
+  const handleClick = () => {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    setSelected(node.id);
+  };
 
   return (
     <div
-      className="absolute"
+      className="absolute cursor-grab touch-none active:z-10 active:cursor-grabbing"
       style={{ left: x, top: y, width, height, opacity: active ? 1 : 0.4, transition: "opacity 0.2s" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
       onPointerEnter={() => setHover(node.id)}
       onPointerLeave={() => setHover(null)}
     >
       <Tooltip content={<SyncMapNodeTooltip node={node} />}>
         <button
           type="button"
-          onClick={() => setSelected(node.id)}
+          onClick={handleClick}
           data-disabled={node.disabled ? "" : undefined}
-          className="flex h-full w-full items-center gap-2 rounded-xl border border-border-elevated bg-background-elevated px-2.5 py-2 text-left data-disabled:opacity-60 data-disabled:saturate-50"
-          style={
-            isFeed
-              ? { borderStyle: "dashed" }
-              : { borderLeft: `3px solid ${nodeColor(node)}` }
-          }
+          className="flex h-full w-full items-center gap-1.5 rounded-lg border border-border-elevated bg-background-elevated px-2 text-left shadow-sm data-disabled:opacity-60 data-disabled:saturate-50"
+          style={isFeed ? { borderStyle: "dashed" } : { borderLeft: `3px solid ${nodeColor(node)}` }}
         >
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-hover">
+          <div className="flex size-5 shrink-0 items-center justify-center">
             {isFeed ? (
-              <Rss size={15} className="text-foreground-muted" />
+              <Rss size={14} className="text-foreground-muted" />
             ) : (
-              <ProviderIcon provider={node.provider} calendarType={node.calendarType ?? undefined} />
+              <ProviderIcon provider={node.provider} calendarType={node.calendarType ?? undefined} size={14} />
             )}
           </div>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Text size="sm" tone="default" className="truncate">
-              {node.name}
-            </Text>
-            <Text size="xs" tone="muted" className="truncate">
-              {node.accountLabel ?? node.providerName}
-            </Text>
-          </div>
+          <span className="min-w-0 flex-1 truncate text-xs text-foreground">{node.name}</span>
           <SyncMapNodeBadges node={node} />
         </button>
       </Tooltip>
@@ -265,17 +330,14 @@ function SyncMapNodeCard({ positioned, active }: SyncMapNodeCardProps) {
 
 function SyncMapNodeBadges({ node }: { node: SyncMapNode }) {
   return (
-    <div className="flex shrink-0 flex-col items-end gap-0.5">
-      {node.disabled && <PowerOff size={13} className="text-foreground-muted" />}
-      {node.needsReauthentication && <KeyRound size={13} className="text-amber-500" />}
+    <div className="flex shrink-0 items-center gap-1">
+      {node.disabled && <PowerOff size={12} className="text-foreground-muted" />}
+      {node.needsReauthentication && <KeyRound size={12} className="text-amber-500" />}
       {node.failureCount > 0 && (
         <span className="flex items-center gap-0.5 text-red-500">
-          <AlertTriangle size={13} />
-          <span className="text-xs tabular-nums">{node.failureCount}</span>
+          <AlertTriangle size={12} />
+          <span className="text-[0.625rem] tabular-nums">{node.failureCount}</span>
         </span>
-      )}
-      {node.includeInIcalFeed && node.kind === "calendar" && (
-        <Rss size={13} className="text-foreground-muted" />
       )}
     </div>
   );
