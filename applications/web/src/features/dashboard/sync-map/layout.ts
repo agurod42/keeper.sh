@@ -1,8 +1,8 @@
 import type { SyncMapEdge, SyncMapGraph, SyncMapNode } from "./normalize";
 
-export const NODE_WIDTH = 168;
+export const NODE_WIDTH = 172;
 export const NODE_HEIGHT = 64;
-export const COLUMN_GAP = 76;
+export const COLUMN_GAP = 120;
 export const ROW_GAP = 20;
 export const PADDING = 16;
 
