@@ -171,7 +171,7 @@ function CalendarsMenu() {
           <NavigationMenuItemIcon>
             <Workflow size={15} />
           </NavigationMenuItemIcon>
-          <NavigationMenuItemLabel>Sync Map</NavigationMenuItemLabel>
+          <NavigationMenuItemLabel>Calendar Flow</NavigationMenuItemLabel>
           <NavigationMenuItemTrailing />
         </NavigationMenuLinkItem>
         <NavigationMenuLinkItem to="/dashboard/ical">
