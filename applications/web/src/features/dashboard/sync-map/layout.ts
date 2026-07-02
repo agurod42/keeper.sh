@@ -1,8 +1,8 @@
 import type { SyncMapEdge, SyncMapGraph, SyncMapNode } from "./normalize";
 
-export const NODE_WIDTH = 172;
+export const NODE_WIDTH = 168;
 export const NODE_HEIGHT = 64;
-export const COLUMN_GAP = 120;
+export const COLUMN_GAP = 88;
 export const ROW_GAP = 20;
 export const PADDING = 16;
 
@@ -60,6 +60,59 @@ const bezierPath = (
 ): string => `M ${fromX} ${fromY} C ${c1X} ${fromY}, ${c2X} ${toY}, ${toX} ${toY}`;
 
 /**
+ * Reorder each column in place with a few barycenter sweeps so connected nodes
+ * line up vertically and edges cross less. Columns are mutated by reference.
+ */
+const reduceCrossings = (columns: SyncMapNode[][], edges: SyncMapEdge[]): void => {
+  const adjacency = new Map<string, Set<string>>();
+  const link = (a: string, b: string) => {
+    const set = adjacency.get(a) ?? new Set<string>();
+    set.add(b);
+    adjacency.set(a, set);
+  };
+  for (const edge of edges) {
+    link(edge.sourceId, edge.destinationId);
+    link(edge.destinationId, edge.sourceId);
+  }
+
+  const position = new Map<string, number>();
+  const refresh = (column: SyncMapNode[]) => {
+    column.forEach((node, index) => {
+      position.set(node.id, column.length <= 1 ? 0.5 : index / (column.length - 1));
+    });
+  };
+  columns.forEach(refresh);
+
+  const barycenter = (node: SyncMapNode): number => {
+    const neighbours = adjacency.get(node.id);
+    const own = position.get(node.id) ?? 0.5;
+    if (!neighbours || neighbours.size === 0) return own;
+    let sum = 0;
+    let count = 0;
+    for (const id of neighbours) {
+      const p = position.get(id);
+      if (p !== undefined) {
+        sum += p;
+        count += 1;
+      }
+    }
+    return count ? sum / count : own;
+  };
+
+  const SWEEPS = 4;
+  for (let iteration = 0; iteration < SWEEPS; iteration += 1) {
+    const indices = columns.map((_, index) => index);
+    if (iteration % 2 === 1) indices.reverse();
+    for (const columnIndex of indices) {
+      const column = columns[columnIndex];
+      const key = new Map(column.map((node) => [node.id, barycenter(node)]));
+      column.sort((a, b) => (key.get(a.id) ?? 0) - (key.get(b.id) ?? 0));
+      refresh(column);
+    }
+  }
+};
+
+/**
  * Bipartite-by-role layout (design layout A): pure sources on the left,
  * source+destination calendars in the middle, pure destinations (and the ICS
  * feed) on the right. Empty columns collapse so two-column accounts still read
@@ -78,6 +131,8 @@ export const computeSyncMapLayout = (graph: SyncMapGraph): SyncMapLayout => {
   }
 
   const presentColumns = COLUMN_ORDER.filter((role) => (byRole.get(role)?.length ?? 0) > 0);
+
+  reduceCrossings(presentColumns.map((role) => byRole.get(role) ?? []), graph.edges);
 
   const columnHeight = (count: number): number =>
     count * NODE_HEIGHT + Math.max(0, count - 1) * ROW_GAP;

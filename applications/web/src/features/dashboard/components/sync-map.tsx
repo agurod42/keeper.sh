@@ -29,7 +29,42 @@ import type { SyncMapGraph } from "@/features/dashboard/sync-map/normalize";
 import type { CalendarDetail } from "@/types/api";
 
 const NEUTRAL_EDGE = "var(--color-border-elevated)";
-const ACTIVE_EDGE = "var(--color-emerald-400)";
+const FEED_EDGE = "var(--color-foreground-muted)";
+
+// Distinguishable categorical hues so each source calendar's flows are
+// traceable. Calendars that carry a real provider color use that instead.
+const EDGE_PALETTE = [
+  "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444", "#14b8a6",
+  "#ec4899", "#f97316", "#6366f1", "#84cc16", "#06b6d4",
+];
+
+function hashIndex(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (Math.imul(hash, 31) + id.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function nodeColor(node: SyncMapNode): string {
+  if (node.color) return node.color;
+  if (node.kind === "ics-feed") return FEED_EDGE;
+  return EDGE_PALETTE[hashIndex(node.id) % EDGE_PALETTE.length];
+}
+
+interface EdgeStyle {
+  stroke: string;
+  width: number;
+  dash?: string;
+  opacity: number;
+}
+
+function edgeStyle(active: boolean, isFeed: boolean, sourceColor: string): EdgeStyle {
+  if (isFeed) {
+    return { stroke: active ? FEED_EDGE : NEUTRAL_EDGE, width: 1.25, dash: "2 5", opacity: active ? 0.5 : 0.12 };
+  }
+  return { stroke: active ? sourceColor : NEUTRAL_EDGE, width: active ? 2 : 1.25, opacity: active ? 0.9 : 0.18 };
+}
 
 function buildNeighbors(edges: PositionedEdge[]): Map<string, Set<string>> {
   const neighbors = new Map<string, Set<string>>();
@@ -54,11 +89,6 @@ function isNodeActive(hoverId: string | null, nodeId: string, neighbors: Map<str
 function isEdgeActive(hoverId: string | null, edge: PositionedEdge["edge"]): boolean {
   if (!hoverId) return true;
   return edge.sourceId === hoverId || edge.destinationId === hoverId;
-}
-
-function resolveEdgeColor(active: boolean, color: string | null): string {
-  if (!active) return NEUTRAL_EDGE;
-  return color ?? ACTIVE_EDGE;
 }
 
 export function SyncMap() {
@@ -114,16 +144,16 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
   const hoverId = useAtomValue(syncMapHoverNodeIdAtom);
 
   const colorById = useMemo(() => {
-    const map = new Map<string, string | null>();
-    for (const { node } of layout.nodes) map.set(node.id, node.color);
+    const map = new Map<string, string>();
+    for (const { node } of layout.nodes) map.set(node.id, nodeColor(node));
     return map;
   }, [layout.nodes]);
 
   return (
-    // Only the diagram breaks out of the dashboard's narrow max-w-sm column to
-    // full viewport width; the header and detail panel stay in the normal
-    // column. The graph itself stays centered within the wide area.
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto px-4">
+    // Only the diagram breaks out of the dashboard's narrow max-w-sm column; it
+    // is capped and centered (not full-bleed) so the eye doesn't travel far.
+    // The header and detail panel stay in the normal column.
+    <div className="relative left-1/2 w-screen max-w-3xl -translate-x-1/2 overflow-x-auto px-4">
       <div className="relative mx-auto" style={{ width: layout.width, height: layout.height }}>
         <svg
           className="absolute inset-0 overflow-visible"
@@ -146,19 +176,24 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
           </defs>
           {layout.edges.map((positioned) => {
             const active = isEdgeActive(hoverId, positioned.edge);
-            const stroke = resolveEdgeColor(active, colorById.get(positioned.edge.sourceId) ?? null);
+            const style = edgeStyle(
+              active,
+              positioned.edge.kind === "ics-feed",
+              colorById.get(positioned.edge.sourceId) ?? NEUTRAL_EDGE,
+            );
             return (
               <m.path
                 key={positioned.edge.id}
                 d={positioned.path}
-                stroke={stroke}
-                strokeWidth={active ? 2 : 1.5}
+                stroke={style.stroke}
+                strokeWidth={style.width}
+                strokeDasharray={style.dash}
                 strokeLinecap="round"
                 markerEnd="url(#sync-map-arrow)"
                 markerStart={positioned.edge.bidirectional ? "url(#sync-map-arrow)" : undefined}
-                style={{ opacity: active ? 1 : 0.35 }}
+                style={{ opacity: style.opacity }}
                 initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: active ? 1 : 0.35 }}
+                animate={{ pathLength: 1, opacity: style.opacity }}
                 transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
               />
             );
@@ -187,8 +222,6 @@ function SyncMapNodeCard({ positioned, active }: SyncMapNodeCardProps) {
   const setSelected = useSetAtom(syncMapSelectedNodeIdAtom);
   const isFeed = node.kind === "ics-feed";
 
-  const accent = node.color ?? undefined;
-
   return (
     <div
       className="absolute"
@@ -202,10 +235,11 @@ function SyncMapNodeCard({ positioned, active }: SyncMapNodeCardProps) {
           onClick={() => setSelected(node.id)}
           data-disabled={node.disabled ? "" : undefined}
           className="flex h-full w-full items-center gap-2 rounded-xl border border-border-elevated bg-background-elevated px-2.5 py-2 text-left data-disabled:opacity-60 data-disabled:saturate-50"
-          style={{
-            borderLeft: accent ? `3px solid ${accent}` : undefined,
-            borderStyle: isFeed ? "dashed" : undefined,
-          }}
+          style={
+            isFeed
+              ? { borderStyle: "dashed" }
+              : { borderLeft: `3px solid ${nodeColor(node)}` }
+          }
         >
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-hover">
             {isFeed ? (
