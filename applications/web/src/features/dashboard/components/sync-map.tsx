@@ -71,6 +71,46 @@ function edgeStyle(active: boolean, isFeed: boolean, sourceColor: string): EdgeS
   return { stroke: active ? sourceColor : NEUTRAL_EDGE, width: active ? 2 : 1.25, opacity: active ? 0.9 : 0.18 };
 }
 
+// Small filled triangle pointing along +x; rotated per edge to show flow.
+const ARROW_PATH = "M -3 -3.4 L 4.4 0 L -3 3.4 Z";
+
+interface EdgeArrow {
+  x: number;
+  y: number;
+  angle: number;
+}
+
+/**
+ * Direction markers placed on the edge (at its midpoint), oriented along the
+ * curve's tangent. One arrow for a one-way flow, two opposing arrows for a
+ * bidirectional pair.
+ */
+function edgeArrows(from: NodeRect, to: NodeRect, bidirectional: boolean): EdgeArrow[] {
+  const fromX = from.x + from.width / 2;
+  const fromY = from.y;
+  const toX = to.x + to.width / 2;
+  const toY = to.y + to.height;
+  const centerX = (fromX + toX) / 2;
+  const centerY = (fromY + toY) / 2;
+  // Tangent of the vertical S-curve at its midpoint.
+  const dx = 1.5 * (toX - fromX);
+  const dy = 0.75 * (toY - fromY);
+  const length = Math.hypot(dx, dy) || 1;
+  const unitX = dx / length;
+  const unitY = dy / length;
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+  if (!bidirectional) {
+    return [{ x: centerX, y: centerY, angle }];
+  }
+
+  const offset = 7;
+  return [
+    { x: centerX + unitX * offset, y: centerY + unitY * offset, angle },
+    { x: centerX - unitX * offset, y: centerY - unitY * offset, angle: angle + 180 },
+  ];
+}
+
 function buildNeighbors(edges: SyncMapEdge[]): Map<string, Set<string>> {
   const neighbors = new Map<string, Set<string>>();
   const connect = (a: string, b: string) => {
@@ -190,39 +230,37 @@ function SyncMapCanvas({ graph }: { graph: SyncMapGraph }) {
           height={layout.height}
           fill="none"
         >
-          <defs>
-            <marker
-              id="sync-map-arrow"
-              viewBox="0 0 8 8"
-              refX="7"
-              refY="4"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1 L 7 4 L 0 7 z" fill="context-stroke" />
-            </marker>
-          </defs>
           {graph.edges.map((edge) => {
             const from = rectById.get(edge.sourceId);
             const to = rectById.get(edge.destinationId);
             if (!from || !to) return null;
             const active = isEdgeActive(hoverId, edge);
             const style = edgeStyle(active, edge.kind === "ics-feed", colorById.get(edge.sourceId) ?? NEUTRAL_EDGE);
+            const arrows = edgeArrows(from, to, edge.bidirectional);
             return (
-              <m.path
+              <m.g
                 key={edge.id}
-                d={buildEdgePath(from, to)}
-                stroke={style.stroke}
-                strokeWidth={style.width}
-                strokeDasharray={style.dash}
-                strokeLinecap="round"
-                markerEnd="url(#sync-map-arrow)"
-                markerStart={edge.bidirectional ? "url(#sync-map-arrow)" : undefined}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: style.opacity }}
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              />
+              >
+                <path
+                  d={buildEdgePath(from, to)}
+                  stroke={style.stroke}
+                  strokeWidth={style.width}
+                  strokeDasharray={style.dash}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                {arrows.map((arrow, index) => (
+                  <path
+                    key={index}
+                    d={ARROW_PATH}
+                    transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.angle})`}
+                    fill={style.stroke}
+                  />
+                ))}
+              </m.g>
             );
           })}
         </svg>
