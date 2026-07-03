@@ -5,6 +5,7 @@ import Calendar from "lucide-react/dist/esm/icons/calendar";
 import CalendarPlus from "lucide-react/dist/esm/icons/calendar-plus";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days";
 import Workflow from "lucide-react/dist/esm/icons/workflow";
+import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock";
 import Link2 from "lucide-react/dist/esm/icons/link-2";
 import Settings from "lucide-react/dist/esm/icons/settings";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
@@ -172,6 +173,13 @@ function CalendarsMenu() {
             <Workflow size={15} />
           </NavigationMenuItemIcon>
           <NavigationMenuItemLabel>Calendar Flow</NavigationMenuItemLabel>
+          <NavigationMenuItemTrailing />
+        </NavigationMenuLinkItem>
+        <NavigationMenuLinkItem to="/dashboard/booking">
+          <NavigationMenuItemIcon>
+            <CalendarClock size={15} />
+          </NavigationMenuItemIcon>
+          <NavigationMenuItemLabel>Booking</NavigationMenuItemLabel>
           <NavigationMenuItemTrailing />
         </NavigationMenuLinkItem>
         <NavigationMenuLinkItem to="/dashboard/ical">
